@@ -9,93 +9,48 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.logging.Logger
+import org.jetbrains.demo.ui.ChatScreen
+
 @Composable
 fun App(authViewModel: AuthViewModel) {
     Logger.app.d("App: Composable started")
-    
+
     val context = LocalContext.current
     val isLoading by authViewModel.isLoading.collectAsState()
     val error by authViewModel.error.collectAsState()
-    val userInfo by authViewModel.userInfo.collectAsState()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
     MaterialTheme {
-        Column(
-            modifier = Modifier
-                .safeContentPadding()
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (userInfo != null) {
-                SignedInContent(
-                    user = userInfo!!,
-                    onSignOut = { authViewModel.signOut() }
-                )
-            } else {
+        if (isLoggedIn) {
+            ChatScreen(onSignOut = { authViewModel.signOut() })
+        } else {
+            Column(
+                modifier = Modifier
+                    .safeContentPadding()
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 SignInContent(
                     isLoading = isLoading,
                     error = error,
-                    onSignIn = { /* Not used */ },
-                    onClearError = { authViewModel.clearError() },
-                    onSignInClick = { authViewModel.signIn(context) }
-                )
+                    onClearError = { authViewModel.clearError() }
+                ) { authViewModel.signIn(context) }
             }
         }
     }
 }
-@Composable
-private fun SignedInContent(
-    user: UserInfo,
-    onSignOut: () -> Unit
-) {
-    Logger.app.d("SignedInContent: Displaying content for user ${user.email}")
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Welcome!",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Name: ${user.name}",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Text(
-                text = "Email: ${user.email}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = onSignOut,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Sign Out")
-            }
-        }
-    }
-}
 @Composable
 private fun SignInContent(
     isLoading: Boolean,
     error: String?,
-    onSignIn: (String) -> Unit,
     onClearError: () -> Unit,
     onSignInClick: () -> Unit
 ) {

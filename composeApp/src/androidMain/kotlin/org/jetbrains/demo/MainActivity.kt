@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.demo.auth.AuthViewModel
+import org.jetbrains.demo.auth.TokenStorage
 import org.jetbrains.demo.logging.Logger
 
 class MainActivity : ComponentActivity() {
@@ -18,7 +19,8 @@ class MainActivity : ComponentActivity() {
         Logger.auth.d("Configuring OAuth2 authentication")
         
         setContent {
-            val authViewModel: AuthViewModel = viewModel()
+            val tokenStorage = TokenStorage(this)
+            val authViewModel: AuthViewModel = viewModel { AuthViewModel(tokenStorage) }
             App(authViewModel = authViewModel)
         }
     }
