@@ -9,6 +9,5 @@ app:
   jwk:
     issuer: "https://accounts.google.com"
     jwkUrl: "https://www.googleapis.com/oauth2/v3/certs"
-    clientId: "$GOOGLE_CLIENT_ID:"
   ai:
     apiKey: "$OPENAI_API_KEY:"

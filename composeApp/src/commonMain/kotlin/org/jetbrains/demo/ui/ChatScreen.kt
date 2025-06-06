@@ -12,13 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.sse.sse
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.logging.Logger
-import org.jetbrains.demo.sse.sse
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -138,8 +138,8 @@ fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
                                     request = {
                                         parameter("message", userMessage)
                                     }
-                                ) { eventFlow ->
-                                    eventFlow.collect { event ->
+                                ) {
+                                    incoming.collect { event ->
                                         event.data?.let { token ->
                                             aiResponse += "$token "
                                             // Update the AI message with accumulated response

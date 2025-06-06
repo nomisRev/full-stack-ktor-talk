@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.logging.Logger
-import org.jetbrains.demo.network.TokenProvider
 
 class AuthViewModel(private val tokenStorage: TokenProvider) : ViewModel() {
 

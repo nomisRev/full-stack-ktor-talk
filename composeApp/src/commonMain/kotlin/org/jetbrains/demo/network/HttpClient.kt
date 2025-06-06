@@ -5,7 +5,9 @@ import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
+import io.ktor.client.plugins.sse.SSE
 import io.ktor.serialization.kotlinx.json.*
+import org.jetbrains.demo.auth.TokenProvider
 import org.jetbrains.demo.logging.Logger
 
 /**
@@ -14,6 +16,7 @@ import org.jetbrains.demo.logging.Logger
 fun HttpClient(tokenProvider: TokenProvider): HttpClient = HttpClient {
     install(ContentNegotiation) { json() }
 
+    install(SSE)
     install(Logging) {
         logger = object : io.ktor.client.plugins.logging.Logger {
             override fun log(message: String) = Logger.network.d(message)
@@ -24,7 +27,7 @@ fun HttpClient(tokenProvider: TokenProvider): HttpClient = HttpClient {
     install(Auth) {
         bearer {
             loadTokens {
-                val token = tokenProvider.getToken()
+                val token = tokenProvider.getToken() ?: tokenProvider.refreshToken()
                 Logger.network.d("Loading token for request: ${token != null}")
                 token?.let {
                     BearerTokens(accessToken = it, refreshToken = null)

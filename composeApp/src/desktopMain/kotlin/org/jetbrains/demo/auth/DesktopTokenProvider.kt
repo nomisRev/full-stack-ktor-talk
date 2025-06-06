@@ -3,6 +3,7 @@ package org.jetbrains.demo.auth
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.engine.cio.CIO as CIOClient
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.auth.OAuthAccessTokenResponse.OAuth2
@@ -21,7 +22,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import org.jetbrains.demo.config.*
 import org.jetbrains.demo.logging.*
-import org.jetbrains.demo.network.*
 import java.awt.*
 import java.net.*
 import java.net.ServerSocket
@@ -33,9 +33,9 @@ import java.net.ServerSocket
  * 2. Opens browser to Google OAuth URL
  * 3. Exchanges authorization code for ID token using Ktor HTTP client
  */
-class DesktopTokenProvider(private val appConfig: AppConfig) : TokenProvider {
+class DesktopTokenProvider(private val config: DesktopConfig) : TokenProvider {
 
-    private val httpClient = HttpClient(io.ktor.client.engine.cio.CIO) {
+    private val httpClient = HttpClient(CIOClient) {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -44,6 +44,9 @@ class DesktopTokenProvider(private val appConfig: AppConfig) : TokenProvider {
         }
         followRedirects = false
     }
+
+    // Only in memory for now
+    private var token: OAuth2? = null
 
     @Serializable
     data class TokenResponse(
@@ -57,12 +60,10 @@ class DesktopTokenProvider(private val appConfig: AppConfig) : TokenProvider {
 
     override suspend fun getToken(): String? = withContext(Dispatchers.IO) {
         Logger.app.d("DesktopTokenProvider: Token Storage not yet implemented.")
-        null
+        token?.extraParameters["id_token"]
     }
 
     override suspend fun refreshToken(): String? = withContext(Dispatchers.IO) {
-        Logger.network.d("DesktopTokenProvider: Starting OAuth2 flow")
-
         val callback = CompletableDeferred<OAuth2>()
         val availablePort = ServerSocket(0).use { it.localPort }
         val server = embeddedServer(CIO, port = availablePort) {
@@ -75,12 +76,12 @@ class DesktopTokenProvider(private val appConfig: AppConfig) : TokenProvider {
                             authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
                             accessTokenUrl = "https://oauth2.googleapis.com/token",
                             requestMethod = HttpMethod.Post,
-                            clientId = DesktopConfig.googleClientId,
-                            clientSecret = DesktopConfig.clientSecret,
+                            clientId = config.googleClientId,
+                            clientSecret = config.clientSecret,
                             defaultScopes = listOf("email"),
                         )
                     }
-                    client = HttpClient(io.ktor.client.engine.cio.CIO) { install(ContentNegotiation) { json() } }
+                    client = HttpClient(CIOClient) { install(ContentNegotiation) { json() } }
                 }
             }
             routing {
@@ -107,9 +108,11 @@ class DesktopTokenProvider(private val appConfig: AppConfig) : TokenProvider {
                 val url = response.headers["Location"]!!
                 Desktop.getDesktop().browse(URI(url))
             } else {
-                throw IllegalStateException("")
+                throw IllegalStateException("Server returned ${response.status} status code. Expected 302 Found for OAuth redirect.")
             }
-            callback.await().extraParameters["id_token"]
+            val oauth = callback.await()
+            token = oauth
+            oauth.extraParameters["id_token"]
         } finally {
             server.stopSuspend(1000, 5000)
         }
@@ -117,7 +120,7 @@ class DesktopTokenProvider(private val appConfig: AppConfig) : TokenProvider {
 
     override suspend fun clearToken() = withContext(Dispatchers.IO) {
         Logger.network.d("DesktopTokenProvider: Clearing token")
-        // TODO implement
+        token = null
     }
 
     private fun createSuccessResponseHtml(): String = """

@@ -17,7 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.logging.Logger
-import org.jetbrains.demo.network.TokenProvider
 
 private const val KEY_ID_TOKEN = "id_token"
 

@@ -12,8 +12,7 @@ import java.util.concurrent.TimeUnit
 @Serializable
 data class JwkConfig(
     val issuer: String,
-    val jwkUrl: String,
-    val clientId: String
+    val jwkUrl: String
 )
 
 fun Application.configureJwtAuth(config: JwkConfig) {

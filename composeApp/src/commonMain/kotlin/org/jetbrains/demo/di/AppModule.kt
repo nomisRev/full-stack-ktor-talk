@@ -3,7 +3,7 @@ package org.jetbrains.demo.di
 import org.jetbrains.demo.auth.AuthViewModel
 import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.network.HttpClient
-import org.jetbrains.demo.network.TokenProvider
+import org.jetbrains.demo.auth.TokenProvider
 import org.koin.dsl.module
 
 val appModule = module {
