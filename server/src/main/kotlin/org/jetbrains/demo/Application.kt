@@ -21,14 +21,9 @@ fun main() {
 
 fun Application.module() {
     install(ContentNegotiation) { json() }
-    
-    // Configure JWT authentication
     configureJwtAuth()
-    
-    // Configure authentication routes
     configureAuthRoutes()
     
-    // Add a simple root route for testing
     routing {
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")

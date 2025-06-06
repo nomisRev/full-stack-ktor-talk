@@ -6,28 +6,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import io.ktor.client.HttpClient
+import kotlinx.coroutines.launch
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.logging.Logger
 import org.jetbrains.demo.ui.ChatScreen
 
 @Composable
-fun App(authViewModel: AuthViewModel) {
+fun App(authViewModel: AuthViewModel, client: HttpClient) {
     Logger.app.d("App: Composable started")
 
-    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val isLoading by authViewModel.isLoading.collectAsState()
     val error by authViewModel.error.collectAsState()
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
     MaterialTheme {
         if (isLoggedIn) {
-            ChatScreen(onSignOut = { authViewModel.signOut() })
+            ChatScreen(client, onSignOut = { scope.launch { authViewModel.signOut() } })
         } else {
             Column(
                 modifier = Modifier
@@ -41,7 +39,7 @@ fun App(authViewModel: AuthViewModel) {
                     isLoading = isLoading,
                     error = error,
                     onClearError = { authViewModel.clearError() }
-                ) { authViewModel.signIn(context) }
+                ) { scope.launch { authViewModel.signIn() } }
             }
         }
     }

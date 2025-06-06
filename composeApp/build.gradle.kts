@@ -72,8 +72,10 @@ android {
 
 
         val properties = gradleLocalProperties(rootDir, providers)
-        val googleClientId = properties.getProperty("GOOGLE_CLIENT_ID", "")
+        val googleClientId = System.getenv("GOOGLE_CLIENT_ID") ?: properties.getProperty("GOOGLE_CLIENT_ID", "")
+        val apiBaseUrl = System.getenv("API_BASE_URL") ?:properties.getProperty("API_BASE_URL", "")
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
     packaging {
         resources {

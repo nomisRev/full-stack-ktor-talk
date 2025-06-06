@@ -27,4 +27,55 @@ This is a Kotlin Multiplatform project targeting Android, Server.
 6. Download the real `google-services.json` file and replace the placeholder file in `/composeApp/`
 7. Update the `WEB_CLIENT_ID` constants in `MainActivity.kt` and `GoogleAuthManager.kt` with your actual web client ID
 
+## HTTP Client with Authentication
+
+The project now includes a fully configured Ktor HttpClient with automatic authentication and token refresh:
+
+### Features
+
+- **Automatic Token Loading**: Integrates with `TokenStorage` to automatically load authentication tokens
+- **Token Refresh**: Automatically refreshes Google ID tokens when they become invalid
+- **Bearer Authentication**: Uses Ktor's Auth plugin with Bearer token authentication
+- **Content Negotiation**: Configured for JSON serialization/deserialization
+- **Logging**: Comprehensive HTTP request/response logging
+
+### Usage
+
+1. **Initialize the NetworkModule** (done in `MainActivity`):
+```kotlin
+NetworkModule.initialize(
+    context = this,
+    tokenStorage = tokenStorage
+)
+```
+
+2. **Get the authenticated HTTP client**:
+```kotlin
+val httpClient = NetworkModule.getHttpClient()
+val apiService = NetworkModule.getApiService()
+```
+
+3. **Make authenticated requests**:
+```kotlin
+// The HTTP client automatically includes authentication headers
+val userProfile = apiService.getUserProfile()
+val protectedData = apiService.getProtectedData()
+```
+
+### Architecture
+
+- **`TokenProvider`**: Common interface for token management
+- **`AndroidTokenProvider`**: Android implementation using `TokenStorage` and Google Credentials API
+- **`HttpClientFactory`**: Creates configured HTTP clients with authentication
+- **`NetworkModule`**: Provides singleton access to HTTP client and API services
+- **`ApiService`**: Example service showing how to use the authenticated client
+
+### Token Refresh Flow
+
+1. HTTP request is made with current token from `TokenStorage`
+2. If server returns 401 (Unauthorized), Ktor Auth plugin triggers token refresh
+3. `AndroidTokenProvider.refreshToken()` gets a new Google ID token
+4. New token is saved to `TokenStorage`
+5. Original request is retried with the new token
+
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…

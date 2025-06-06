@@ -10,25 +10,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import org.jetbrains.demo.auth.UserInfo
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import org.jetbrains.BuildConfig
 import org.jetbrains.demo.logging.Logger
 
 @Composable
-fun ChatScreen(
-    onSignOut: () -> Unit
-) {
+fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
     Logger.app.d("ChatScreen: Displaying chat for user")
-    
+
     var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var messageText by remember { mutableStateOf("") }
-    
+
     LaunchedEffect(Unit) {
-        messages = listOf(
-            ChatMessage("Welcome to the chat!", true),
-            ChatMessage("How can I help you today?", false)
-        )
+        val response = client.get("${BuildConfig.API_BASE_URL}/protected")
+        messages = listOf(ChatMessage(response.bodyAsText(), false))
     }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +58,7 @@ fun ChatScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 Button(
                     onClick = onSignOut,
                     colors = ButtonDefaults.buttonColors(
@@ -70,9 +69,9 @@ fun ChatScreen(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Messages
         LazyColumn(
             modifier = Modifier
@@ -84,9 +83,9 @@ fun ChatScreen(
                 MessageBubble(message = message)
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Message input
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -100,13 +99,13 @@ fun ChatScreen(
                 placeholder = { Text("Type a message...") },
                 maxLines = 3
             )
-            
+
             Button(
                 onClick = {
                     if (messageText.isNotBlank()) {
                         messages = messages + ChatMessage(messageText, true)
                         messageText = ""
-                        
+
                         // Simulate a response
                         messages = messages + ChatMessage("Thanks for your message!", false)
                     }
@@ -154,7 +153,4 @@ private fun MessageBubble(message: ChatMessage) {
     }
 }
 
-data class ChatMessage(
-    val text: String,
-    val isFromUser: Boolean
-)
+data class ChatMessage(val text: String, val isFromUser: Boolean)
