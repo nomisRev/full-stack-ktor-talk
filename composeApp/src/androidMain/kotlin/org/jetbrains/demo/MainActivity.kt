@@ -5,9 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import org.jetbrains.demo.auth.AuthViewModel
-import org.jetbrains.demo.logging.Logger
 import org.jetbrains.demo.auth.AndroidTokenProvider
 import org.jetbrains.demo.network.HttpClient
+import org.jetbrains.demo.ui.App
 
 class MainActivity : ComponentActivity() {
 
@@ -15,10 +15,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        Logger.app.d("MainActivity: onCreate")
-        Logger.auth.d("Configuring OAuth2 authentication")
-
-        // Initialize TokenStorage
         val tokenProvider = AndroidTokenProvider(this)
         val authViewModel = AuthViewModel(tokenProvider)
         val client = HttpClient(tokenProvider)

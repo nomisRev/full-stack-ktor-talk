@@ -1,4 +1,4 @@
-package org.jetbrains.demo
+package org.jetbrains.demo.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +12,6 @@ import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.logging.Logger
-import org.jetbrains.demo.ui.ChatScreen
 
 @Composable
 fun App(authViewModel: AuthViewModel, client: HttpClient) {
