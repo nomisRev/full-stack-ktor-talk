@@ -24,7 +24,7 @@ fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
     var messageText by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        val response = client.get("${BuildConfig.API_BASE_URL}/protected")
+        val response = client.get("${BuildConfig.API_BASE_URL}/hello")
         messages = listOf(ChatMessage(response.bodyAsText(), false))
     }
 

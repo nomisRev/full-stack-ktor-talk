@@ -4,12 +4,7 @@ import co.touchlab.kermit.Logger as KermitLogger
 import co.touchlab.kermit.Severity
 import co.touchlab.kermit.StaticConfig
 
-/**
- * Multiplatform logger utility for the application.
- * Provides a consistent logging interface across all platforms.
- */
 object Logger {
-    // Create the base logger
     private val baseLogger = KermitLogger(
         config = StaticConfig(
             minSeverity = Severity.Debug

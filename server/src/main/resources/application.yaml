@@ -1,0 +1,12 @@
+ktor:
+  application:
+    modules: [ org.jetbrains.demo.Application.module ]
+  deployment:
+    host: "$KTOR_HOST:0.0.0.0"
+    port: "$KTOR_PORT:8080"
+
+app:
+  jwk:
+    issuer: "https://accounts.google.com/"
+    jwkUrl: "https://www.googleapis.com/oauth2/v3/certs"
+    clientId: "$GOOGLE_CLIENT_ID:"
