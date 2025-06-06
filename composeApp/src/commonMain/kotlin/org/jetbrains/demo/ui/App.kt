@@ -12,11 +12,22 @@ import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.logging.Logger
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class AppComponent : KoinComponent {
+    val authViewModel: AuthViewModel by inject()
+    val client: HttpClient by inject()
+}
 
 @Composable
-fun App(authViewModel: AuthViewModel, client: HttpClient) {
+fun App() {
     Logger.app.d("App: Composable started")
 
+    val appComponent = remember { AppComponent() }
+    val authViewModel = appComponent.authViewModel
+    val client = appComponent.client
+    
     val scope = rememberCoroutineScope()
     val isLoading by authViewModel.isLoading.collectAsState()
     val error by authViewModel.error.collectAsState()

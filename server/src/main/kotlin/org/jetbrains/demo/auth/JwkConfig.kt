@@ -24,10 +24,7 @@ fun Application.configureJwtAuth(config: JwkConfig) {
             .build()
 
         jwt("google-jwt") {
-            authSchemes()
-            verifier(jwk, config.issuer) {
-                withAudience(config.clientId)
-            }
+            verifier(jwk, config.issuer)
             validate { credential ->
                 val email = credential.payload.getClaim("email")?.asString()
                 val emailVerified = credential.payload.getClaim("email_verified")?.asBoolean()
@@ -42,4 +39,4 @@ fun Application.configureJwtAuth(config: JwkConfig) {
     }
 }
 
-class GoogleIdToken(val email: String, payload: Payload): JWTPayloadHolder(payload)
+class GoogleIdToken(val email: String, payload: Payload) : JWTPayloadHolder(payload)

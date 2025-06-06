@@ -17,6 +17,13 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
+    
+    jvm("desktop") {
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
 
     sourceSets {
 
@@ -34,6 +41,26 @@ kotlin {
             implementation(libs.googleid)
             implementation(libs.androidx.navigation.compose)
             implementation(libs.androidx.security.crypto)
+            implementation(libs.koin.android)
+            implementation(libs.koin.androidx.compose)
+        }
+        
+        val desktopMain by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(libs.ktor.clientCio)
+                implementation(libs.ktor.clientContentNegotiationJvm)
+                implementation(libs.ktor.serializationKotlinxJson)
+                implementation(libs.koin.core)
+                implementation(libs.kotlinx.coroutines.core)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${libs.versions.kotlinx.coroutines.get()}")
+                // OAuth2 dependencies for desktop
+                implementation(libs.ktor.serverCIO)
+                implementation(libs.ktor.serverAuthJwt)
+                implementation("io.ktor:ktor-client-cio-jvm:${libs.versions.ktor.get()}")
+                implementation("io.ktor:ktor-client-content-negotiation-jvm:${libs.versions.ktor.get()}")
+                implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:${libs.versions.ktor.get()}")
+            }
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -51,6 +78,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kermit)
+            implementation(libs.koin.core)
             implementation(projects.shared)
         }
         commonTest.dependencies {
@@ -110,5 +138,19 @@ android {
 }
 
 dependencies {
+    implementation("io.ktor:ktor-client-apache:3.2.0-eap-1341")
+    implementation("io.ktor:ktor-client-cio-jvm:3.2.0-eap-1341")
     debugImplementation(compose.uiTooling)
+}
+
+compose.desktop {
+    application {
+        mainClass = "org.jetbrains.demo.MainKt"
+        
+        val properties = gradleLocalProperties(rootDir, providers)
+        jvmArgs += listOf(
+            "-DGOOGLE_CLIENT_ID=${System.getenv("GOOGLE_CLIENT_ID") ?: properties.getProperty("GOOGLE_CLIENT_ID", "")}",
+            "-DAPI_BASE_URL=${System.getenv("API_BASE_URL") ?: properties.getProperty("API_BASE_URL", "")}"
+        )
+    }
 }

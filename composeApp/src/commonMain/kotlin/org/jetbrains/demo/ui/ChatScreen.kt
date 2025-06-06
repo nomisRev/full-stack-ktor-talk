@@ -3,6 +3,7 @@ package org.jetbrains.demo.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,20 +13,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
-import org.jetbrains.BuildConfig
+import kotlinx.coroutines.launch
+import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.logging.Logger
+import org.jetbrains.demo.sse.sse
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class ChatScreenComponent : KoinComponent {
+    val config: AppConfig by inject()
+}
 
 @Composable
 fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
     Logger.app.d("ChatScreen: Displaying chat for user")
 
+    val chatComponent = remember { ChatScreenComponent() }
+    val config = chatComponent.config
     var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var messageText by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
-    LaunchedEffect(Unit) {
-        val response = client.get("${BuildConfig.API_BASE_URL}/hello")
-        messages = listOf(ChatMessage(response.bodyAsText(), false))
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
     }
 
     Column(
@@ -74,6 +91,7 @@ fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
 
         // Messages
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
@@ -102,17 +120,59 @@ fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
 
             Button(
                 onClick = {
-                    if (messageText.isNotBlank()) {
-                        messages = messages + ChatMessage(messageText, true)
+                    if (messageText.isNotBlank() && !isLoading) {
+                        val userMessage = messageText
+                        messages = messages + ChatMessage(userMessage, true)
                         messageText = ""
+                        isLoading = true
 
-                        // Simulate a response
-                        messages = messages + ChatMessage("Thanks for your message!", false)
+                        scope.launch {
+                            try {
+                                // Add a placeholder message for the AI response
+                                val aiMessageIndex = messages.size
+                                messages = messages + ChatMessage("", false, isStreaming = true)
+
+                                var aiResponse = ""
+                                client.sse(
+                                    urlString = "${config.apiBaseUrl}/chat",
+                                    request = {
+                                        parameter("message", userMessage)
+                                    }
+                                ) { eventFlow ->
+                                    eventFlow.collect { event ->
+                                        event.data?.let { token ->
+                                            aiResponse += "$token "
+                                            // Update the AI message with accumulated response
+                                            messages = messages.toMutableList().apply {
+                                                set(aiMessageIndex, ChatMessage(aiResponse, false, isStreaming = true))
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Mark streaming as complete
+                                messages = messages.toMutableList().apply {
+                                    set(aiMessageIndex, ChatMessage(aiResponse, false, isStreaming = false))
+                                }
+                            } catch (e: Exception) {
+                                Logger.app.e("Error during SSE chat: ${e.message}")
+                                messages = messages + ChatMessage("Error: ${e.message}", false)
+                            } finally {
+                                isLoading = false
+                            }
+                        }
                     }
                 },
-                enabled = messageText.isNotBlank()
+                enabled = messageText.isNotBlank() && !isLoading
             ) {
-                Text("Send")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(if (isLoading) "Sending..." else "Send")
             }
         }
     }
@@ -140,17 +200,39 @@ private fun MessageBubble(message: ChatMessage) {
                 }
             )
         ) {
-            Text(
-                text = message.text,
+            Row(
                 modifier = Modifier.padding(12.dp),
-                color = if (message.isFromUser) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (message.text.isEmpty() && message.isStreaming) "..." else message.text,
+                    modifier = Modifier.weight(1f),
+                    color = if (message.isFromUser) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+                
+                if (message.isStreaming && message.text.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.dp,
+                        color = if (message.isFromUser) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 }
 
-data class ChatMessage(val text: String, val isFromUser: Boolean)
+data class ChatMessage(
+    val text: String, 
+    val isFromUser: Boolean, 
+    val isStreaming: Boolean = false
+)

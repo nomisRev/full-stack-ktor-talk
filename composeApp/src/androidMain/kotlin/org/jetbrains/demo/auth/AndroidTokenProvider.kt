@@ -15,13 +15,13 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import io.ktor.util.generateNonce
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.jetbrains.BuildConfig
+import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.logging.Logger
 import org.jetbrains.demo.network.TokenProvider
 
 private const val KEY_ID_TOKEN = "id_token"
 
-class AndroidTokenProvider(private val context: Context) : TokenProvider {
+class AndroidTokenProvider(private val context: Context, private val appConfig: AppConfig) : TokenProvider {
 
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -50,7 +50,7 @@ class AndroidTokenProvider(private val context: Context) : TokenProvider {
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(true) // Try to use existing account first
                     .setAutoSelectEnabled(true)
-                    .setServerClientId(BuildConfig.GOOGLE_CLIENT_ID)
+                    .setServerClientId(appConfig.googleClientId)
                     .setNonce(generateNonce())
                     .build()
 

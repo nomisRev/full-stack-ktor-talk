@@ -23,9 +23,42 @@ This is a Kotlin Multiplatform project targeting Android, Server.
 4. Set up OAuth consent screen
 5. Create OAuth client ID credentials:
    - **Android client**: For the Android app (package: `org.jetbrains.demo`)
+   - **Desktop client**: For the desktop app (application type: "Desktop application")
    - **Web client**: For server-side token verification
 6. Download the real `google-services.json` file and replace the placeholder file in `/composeApp/`
-7. Update the `WEB_CLIENT_ID` constants in `MainActivity.kt` and `GoogleAuthManager.kt` with your actual web client ID
+7. Update the `GOOGLE_CLIENT_ID` in your environment variables or `local.properties` with your actual client ID
+
+### Desktop OAuth2 Setup
+
+For the desktop application, you need to:
+
+1. Create a **Desktop application** OAuth2 client in Google Cloud Console
+2. **Important**: Add `http://localhost` as an authorized redirect URI (without specifying a port)
+3. Set the client ID in your environment:
+   ```bash
+   export GOOGLE_CLIENT_ID="your-desktop-client-id.apps.googleusercontent.com"
+   ```
+   Or add it to `local.properties`:
+   ```
+   GOOGLE_CLIENT_ID=your-desktop-client-id.apps.googleusercontent.com
+   ```
+4. The desktop app will automatically open a browser for authentication and handle the OAuth2 flow
+
+## Development Setup
+
+### Server Connection Configuration
+
+For Android development, ensure the `API_BASE_URL` in `local.properties` is correctly configured:
+
+- **Android Emulator**: Use `http://10.0.2.2:8080` (10.0.2.2 is the special IP that maps to host machine's localhost)
+- **Physical Device with USB**: Use `http://localhost:8080` with ADB port forwarding: `adb reverse tcp:8080 tcp:8080`
+- **Physical Device on Network**: Use `http://[your-machine-ip]:8080` where [your-machine-ip] is your development machine's IP address
+
+Example `local.properties`:
+```
+API_BASE_URL=http://10.0.2.2:8080
+GOOGLE_CLIENT_ID=your-google-client-id
+```
 
 ## HTTP Client with Authentication
 

@@ -29,12 +29,7 @@ dependencies {
     implementation(libs.auth0.jwks.rsa)
     implementation(libs.ktor.clientCio)
     implementation(libs.ktor.clientContentNegotiationJvm)
-    implementation("io.ktor:ktor-server-auth:3.1.3")
-    implementation("io.ktor:ktor-server-core:3.1.3")
-    implementation("io.ktor:ktor-server-core:3.1.3")
-    implementation("io.ktor:ktor-server-auth-jwt:3.1.3")
-    implementation("io.ktor:ktor-server-auth:3.1.3")
-    implementation("io.ktor:ktor-server-core:3.1.3")
+    implementation("ai.koog:koog-agents:0.2.0")
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
 }

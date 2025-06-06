@@ -1,13 +1,16 @@
 package org.jetbrains.demo
 
+import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import org.jetbrains.demo.auth.AuthViewModel
-import org.jetbrains.demo.auth.AndroidTokenProvider
-import org.jetbrains.demo.network.HttpClient
+import org.jetbrains.demo.di.androidModule
+import org.jetbrains.demo.di.appModule
 import org.jetbrains.demo.ui.App
+import org.koin.android.ext.koin.androidContext
+import org.koin.compose.KoinApplication
+import org.koin.core.context.GlobalContext.startKoin
 
 class MainActivity : ComponentActivity() {
 
@@ -15,12 +18,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val tokenProvider = AndroidTokenProvider(this)
-        val authViewModel = AuthViewModel(tokenProvider)
-        val client = HttpClient(tokenProvider)
-
         setContent {
-            App(authViewModel = authViewModel, client = client)
+            KoinApplication(application = {
+                androidContext(this@MainActivity)
+                modules(appModule, androidModule)
+            }) {
+                App()
+            }
         }
     }
 }
