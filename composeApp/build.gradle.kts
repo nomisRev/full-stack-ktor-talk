@@ -60,6 +60,8 @@ kotlin {
                 implementation("io.ktor:ktor-client-cio-jvm:${libs.versions.ktor.get()}")
                 implementation("io.ktor:ktor-client-content-negotiation-jvm:${libs.versions.ktor.get()}")
                 implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:${libs.versions.ktor.get()}")
+                // KotlinX HTML for better HTML generation
+                implementation(libs.kotlinx.html)
             }
         }
         commonMain.dependencies {
