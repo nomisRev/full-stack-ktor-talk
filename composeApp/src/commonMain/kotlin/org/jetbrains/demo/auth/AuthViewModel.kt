@@ -18,31 +18,29 @@ class AuthViewModel(
 ) : ViewModel() {
     private val logger = base.withTag("AuthViewModel")
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
-    private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
-
-    init {
-        viewModelScope.launch {
-            _isLoggedIn.value = tokenStorage.getToken() != null
-        }
+    sealed class AuthState {
+        data object Loading : AuthState()
+        data class Error(val message: String) : AuthState()
+        data object SignedOut : AuthState()
+        data object SignedIn : AuthState()
     }
+
+    private val _state = MutableStateFlow<AuthState>(
+        if (tokenStorage.getToken() != null) AuthState.SignedIn
+        else AuthState.SignedOut
+    )
+    val state: StateFlow<AuthState> = _state.asStateFlow()
 
     suspend fun signIn() {
         logger.d("AuthViewModel: Starting sign-in process")
+        _state.value = AuthState.Loading
         val newToken = tokenStorage.refreshToken()
         if (newToken != null) {
             logger.d("AuthViewModel: Token refresh successful")
             registerUser()
-            _isLoggedIn.value = true
         } else {
             logger.d("AuthViewModel: Token refresh failed")
-            _isLoggedIn.value = false
+            _state.value = AuthState.SignedOut
         }
     }
 
@@ -51,27 +49,21 @@ class AuthViewModel(
         val response = httpClient.post("http://0.0.0.0:8080/user/register")
         if (response.status == HttpStatusCode.OK) {
             logger.d("AuthViewModel: User registration successful")
-            _error.value = null
-            _isLoggedIn.value = true
+            _state.value = AuthState.SignedIn
         } else {
-            logger.d("AuthViewModel: User registration failed")
-            _error.value = "Failed to register user"
-            _isLoggedIn.value = false
+            logger.d("AuthViewModel: User registration failed. status: ${response.status.value}}")
+            _state.value = AuthState.Error("Failed to register user")
             tokenStorage.clearToken()
         }
-        _isLoading.value = false
-
     }
 
     suspend fun signOut() {
         tokenStorage.clearToken()
-        _error.value = null
-        _isLoggedIn.value = false
-        _isLoading.value = false
+        _state.value = AuthState.SignedOut
     }
 
     fun clearError() {
         logger.d("AuthViewModel: Clearing error state")
-        _error.value = null
+        _state.value = AuthState.SignedOut
     }
 }

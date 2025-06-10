@@ -11,7 +11,7 @@ fun main() = application {
     startKoin {
         modules(appModule, desktopModule)
     }
-    
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "Demo App",

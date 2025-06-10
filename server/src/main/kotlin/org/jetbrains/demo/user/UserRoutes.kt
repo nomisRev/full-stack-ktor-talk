@@ -20,7 +20,7 @@ fun Application.userRoutes(users: UserRepository) = routing {
     authenticate("google-jwt") {
         route("user") {
             install(ContentNegotiation) { json() }
-            post("/create") {
+            post("/register") {
                 val idToken = call.principal<GoogleIdToken>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val user = users.create(idToken.subject)
                 call.respond(HttpStatusCode.OK, user)
@@ -30,12 +30,6 @@ fun Application.userRoutes(users: UserRepository) = routing {
                 val idToken = call.principal<GoogleIdToken>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                 val user = users.findOrNull(idToken.subject) ?: return@get call.respond(HttpStatusCode.NotFound)
                 call.respond(HttpStatusCode.OK, user)
-            }
-
-            get("/all") {
-                val idToken = call.principal<GoogleIdToken>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                val users = users.findAll()
-                call.respond(HttpStatusCode.OK, users)
             }
 
             get("/email/{email}") {

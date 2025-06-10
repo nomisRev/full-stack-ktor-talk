@@ -13,32 +13,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.sse.sse
-import io.ktor.client.request.get
 import io.ktor.client.request.parameter
-import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.config.AppConfig
-import org.jetbrains.demo.ui.Logger
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-
-class ChatScreenComponent : KoinComponent {
-    val config: AppConfig by inject()
-}
+import org.koin.compose.koinInject
 
 @Composable
-fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
+fun ChatScreen(
+    client: HttpClient = koinInject(),
+    config: AppConfig = koinInject(),
+    onSignOut: () -> Unit
+) {
     Logger.app.d("ChatScreen: Displaying chat for user")
 
-    val chatComponent = remember { ChatScreenComponent() }
-    val config = chatComponent.config
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var messageText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val listState = rememberLazyListState()
 
-    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
@@ -149,7 +142,7 @@ fun ChatScreen(client: HttpClient, onSignOut: () -> Unit) {
                                         }
                                     }
                                 }
-                                
+
                                 // Mark streaming as complete
                                 messages = messages.toMutableList().apply {
                                     set(aiMessageIndex, ChatMessage(aiResponse, false, isStreaming = false))
@@ -213,7 +206,7 @@ private fun MessageBubble(message: ChatMessage) {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
-                
+
                 if (message.isStreaming && message.text.isNotEmpty()) {
                     Spacer(modifier = Modifier.width(8.dp))
                     CircularProgressIndicator(
@@ -232,7 +225,7 @@ private fun MessageBubble(message: ChatMessage) {
 }
 
 data class ChatMessage(
-    val text: String, 
-    val isFromUser: Boolean, 
+    val text: String,
+    val isFromUser: Boolean,
     val isStreaming: Boolean = false
 )

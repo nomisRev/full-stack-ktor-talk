@@ -25,6 +25,8 @@ import org.jetbrains.demo.config.*
 import java.awt.*
 import java.net.*
 
+private const val KEY_ID_TOKEN = "id_token"
+
 /**
  * Desktop implementation of TokenProvider using Google OAuth2 flow with local HTTP server.
  * This implementation:
@@ -48,14 +50,15 @@ class DesktopTokenProvider(
         }
     }
 
-    override suspend fun getToken(): String? = withContext(Dispatchers.IO) {
-        logger.d("TokenProvider: GetToken")
-        preferences.get("id_token", null)
+    override fun getToken(): String? {
+        val token = preferences.get(KEY_ID_TOKEN, null)
+        logger.d("TokenProvider: Retrieved token, exists: ${token != null}")
+        return token
     }
 
     override suspend fun clearToken() = withContext(Dispatchers.IO) {
         logger.d("Clearing token")
-        preferences.remove("id_token")
+        preferences.remove(KEY_ID_TOKEN)
     }
 
     override suspend fun refreshToken(): String? = withContext(Dispatchers.IO) {
@@ -111,10 +114,10 @@ class DesktopTokenProvider(
             logger.d("Refreshing token. Opening browser.")
             Desktop.getDesktop().browse(URI(url))
             val oauth = callback.await()
-            val idToken = oauth.extraParameters["id_token"]
-            if (idToken != null) preferences.put("id_token", idToken)
+            val idToken = oauth.extraParameters[KEY_ID_TOKEN]
+            if (idToken != null) preferences.put(KEY_ID_TOKEN, idToken)
             logger.d("Received, and stored token.")
-            oauth.extraParameters["id_token"]
+            oauth.extraParameters[KEY_ID_TOKEN]
         } finally {
             withContext(NonCancellable) { server.stopSuspend(1000, 5000) }
         }

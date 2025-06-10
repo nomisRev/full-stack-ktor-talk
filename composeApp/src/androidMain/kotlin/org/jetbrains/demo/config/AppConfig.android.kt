@@ -6,6 +6,5 @@ import org.jetbrains.BuildConfig
  * Android implementation of AppConfig using BuildConfig.
  */
 actual fun AppConfig() = object : AppConfig {
-    override val googleClientId: String = BuildConfig.GOOGLE_CLIENT_ID
     override val apiBaseUrl: String = BuildConfig.API_BASE_URL
 }

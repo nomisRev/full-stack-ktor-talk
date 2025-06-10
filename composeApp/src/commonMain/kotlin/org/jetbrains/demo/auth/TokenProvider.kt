@@ -1,4 +1,4 @@
-package org.jetbrains.demo.feature.auth.data
+package org.jetbrains.demo.auth
 
 /**
  * Interface for providing authentication tokens to the HTTP client.
@@ -9,7 +9,7 @@ interface TokenProvider {
      * Gets the current authentication token.
      * @return The current token or null if no token is available
      */
-    suspend fun getToken(): String?
+    fun getToken(): String?
 
     /**
      * Refreshes the authentication token.

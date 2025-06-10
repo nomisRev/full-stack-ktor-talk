@@ -1,23 +1,19 @@
 package org.jetbrains.demo.network
 
 import io.ktor.client.*
+import io.ktor.client.plugins.SaveBodyPlugin
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.serialization.kotlinx.json.*
 import org.jetbrains.demo.auth.TokenProvider
-import org.jetbrains.demo.ui.Logger
 
-/**
- * Small utility function that configures the Ktor HttpClient
- */
 fun HttpClient(
     tokenProvider: TokenProvider,
     baseLogger: co.touchlab.kermit.Logger,
 ): HttpClient = HttpClient {
-    val logger = baseLogger.withTag("HttpClient") 
+    val logger = baseLogger.withTag("HttpClient")
     install(ContentNegotiation) { json() }
     install(SSE)
     install(Auth) {

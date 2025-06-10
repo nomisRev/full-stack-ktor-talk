@@ -15,11 +15,10 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import io.ktor.util.generateNonce
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.BuildConfig
 import org.jetbrains.demo.config.AppConfig
-import org.jetbrains.demo.ui.Logger
 
 private const val KEY_ID_TOKEN = "id_token"
-
 
 class AndroidTokenProvider(
     private val context: Context,
@@ -40,22 +39,21 @@ class AndroidTokenProvider(
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
-    override suspend fun getToken(): String? =
-        withContext(Dispatchers.IO) {
-            val token = sharedPreferences.getString(KEY_ID_TOKEN, null)
-            logger.d("AndroidTokenProvider: Retrieved token, exists: ${token != null}")
-            token
-        }
+    override fun getToken(): String? {
+        val token = sharedPreferences.getString(KEY_ID_TOKEN, null)
+        logger.d("TokenProvider: Retrieved token, exists: ${token != null}")
+        return token
+    }
 
     override suspend fun refreshToken(): String? {
         return withContext(Dispatchers.IO) {
             try {
-                logger.d("AndroidTokenProvider: Starting token refresh")
+                logger.d("TokenProvider: Starting token refresh")
 
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(true) // Try to use existing account first
                     .setAutoSelectEnabled(true)
-                    .setServerClientId(appConfig.googleClientId)
+                    .setServerClientId(BuildConfig.GOOGLE_CLIENT_ID)
                     .setNonce(generateNonce())
                     .build()
 
@@ -74,26 +72,26 @@ class AndroidTokenProvider(
                             val newToken = googleIdTokenCredential.idToken
 
                             sharedPreferences.edit { putString(KEY_ID_TOKEN, newToken) }
-                            logger.d("AndroidTokenProvider: Token refresh successful")
+                            logger.d("TokenProvider: Token refresh successful")
 
                             newToken
                         } catch (e: GoogleIdTokenParsingException) {
-                            logger.e("AndroidTokenProvider: Failed to parse refreshed token", e)
+                            logger.e("TokenProvider: Failed to parse refreshed token", e)
                             null
                         }
                     }
 
                     else -> {
-                        logger.e("AndroidTokenProvider: Unexpected credential type during refresh: ${credential.type}")
+                        logger.e("TokenProvider: Unexpected credential type during refresh: ${credential.type}")
                         null
                     }
                 }
 
             } catch (e: GetCredentialException) {
-                logger.e("AndroidTokenProvider: Token refresh failed", e)
+                logger.e("TokenProvider: Token refresh failed", e)
                 null
             } catch (e: Exception) {
-                logger.e("AndroidTokenProvider: Unexpected error during token refresh", e)
+                logger.e("TokenProvider: Unexpected error during token refresh", e)
                 null
             }
         }
@@ -101,7 +99,7 @@ class AndroidTokenProvider(
 
     override suspend fun clearToken() {
         withContext(Dispatchers.IO) {
-            logger.d("AndroidTokenProvider: Clearing token")
+            logger.d("TokenProvider: Clearing token")
             sharedPreferences.edit { clear() }
         }
     }

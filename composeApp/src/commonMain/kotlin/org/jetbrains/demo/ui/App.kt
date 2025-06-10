@@ -11,29 +11,21 @@ import androidx.compose.ui.unit.dp
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.auth.*
-import org.jetbrains.demo.ui.Logger
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-
-class AppComponent : KoinComponent {
-    val authViewModel: AuthViewModel by inject()
-    val client: HttpClient by inject()
-}
+import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun App() {
+fun App(
+    authViewModel: AuthViewModel = koinViewModel(),
+    client: HttpClient = koinInject()
+) {
     Logger.app.d("App: Composable started")
-    val appComponent = remember { AppComponent() }
-    val authViewModel = appComponent.authViewModel
-    val client = appComponent.client
 
     val scope = rememberCoroutineScope()
-    val isLoading by authViewModel.isLoading.collectAsState()
-    val error by authViewModel.error.collectAsState()
-    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    val state by authViewModel.state.collectAsState()
 
     MaterialTheme {
-        if (isLoggedIn) {
+        if (state == AuthViewModel.AuthState.SignedIn) {
             ChatScreen(client, onSignOut = {
                 scope.launch {
                     authViewModel.signOut()
@@ -49,8 +41,7 @@ fun App() {
                 verticalArrangement = Arrangement.Center
             ) {
                 SignInContent(
-                    isLoading = isLoading,
-                    error = error,
+                    state,
                     onClearError = { authViewModel.clearError() }
                 ) { scope.launch { authViewModel.signIn() } }
             }
@@ -60,12 +51,11 @@ fun App() {
 
 @Composable
 private fun SignInContent(
-    isLoading: Boolean,
-    error: String?,
+    state: AuthViewModel.AuthState,
     onClearError: () -> Unit,
     onSignInClick: () -> Unit
 ) {
-    Logger.app.d("SignInContent: Displaying sign-in UI, isLoading: $isLoading, hasError: ${error != null}")
+    Logger.app.d("SignInContent: Displaying sign-in UI $state")
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -90,8 +80,9 @@ private fun SignInContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (error != null) {
-                Logger.app.d("SignInContent: Displaying error: $error")
+            if (state is AuthViewModel.AuthState.Error) {
+                val message = state.message.ifBlank { "Unknown error" }
+                Logger.app.d("SignInContent: Displaying error: $message")
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -102,7 +93,7 @@ private fun SignInContent(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Error: $error",
+                            text = message,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -121,6 +112,7 @@ private fun SignInContent(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            val isLoading = state is AuthViewModel.AuthState.Loading
             Button(
                 onClick = {
                     // Trigger Google Sign-In flow

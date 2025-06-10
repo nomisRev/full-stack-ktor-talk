@@ -18,6 +18,7 @@ dependencies {
     implementation(ktor.server.netty)
     implementation(ktor.server.config.yaml)
     implementation(ktor.server.auth.jwt)
+    implementation(ktor.server.callLogging)
     implementation(ktor.server.contentNegotiation)
     implementation(ktor.serialization.kotlinx.json)
     implementation(ktor.client.cio)

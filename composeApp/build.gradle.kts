@@ -37,6 +37,7 @@ kotlin {
             implementation(libs.googleid)
             implementation(libs.androidx.navigation.compose)
             implementation(libs.androidx.security.crypto)
+            implementation(libs.koin.android)
             implementation(libs.koin.androidx.compose)
         }
 
@@ -67,7 +68,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kermit)
-            implementation(libs.koin.core)
+            implementation(libs.koin.compose.viewmodel.navigation)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
