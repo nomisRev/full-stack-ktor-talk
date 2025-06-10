@@ -1,6 +1,5 @@
 package org.jetbrains.demo
 
-import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,9 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import org.jetbrains.demo.di.androidModule
 import org.jetbrains.demo.di.appModule
 import org.jetbrains.demo.ui.App
-import org.koin.android.ext.koin.androidContext
-import org.koin.compose.KoinApplication
-import org.koin.core.context.GlobalContext.startKoin
+import org.koin.compose.KoinMultiplatformApplication
+import org.koin.dsl.koinConfiguration
 
 class MainActivity : ComponentActivity() {
 
@@ -19,10 +17,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            KoinApplication(application = {
-                androidContext(this@MainActivity)
-                modules(appModule, androidModule)
-            }) {
+            KoinMultiplatformApplication(
+                koinConfiguration {
+                    modules(appModule, androidModule)
+                }) {
                 App()
             }
         }

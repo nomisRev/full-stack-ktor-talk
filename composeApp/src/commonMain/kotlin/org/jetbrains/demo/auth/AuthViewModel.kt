@@ -9,11 +9,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.ui.Logger
 
 class AuthViewModel(
     private val tokenStorage: TokenProvider,
     private val httpClient: HttpClient,
+    private val appConfig: AppConfig,
     base: co.touchlab.kermit.Logger
 ) : ViewModel() {
     private val logger = base.withTag("AuthViewModel")
@@ -46,7 +48,7 @@ class AuthViewModel(
 
     private suspend fun registerUser() {
         logger.d("AuthViewModel: Registering user")
-        val response = httpClient.post("http://0.0.0.0:8080/user/register")
+        val response = httpClient.post("${appConfig.apiBaseUrl}/user/register")
         if (response.status == HttpStatusCode.OK) {
             logger.d("AuthViewModel: User registration successful")
             _state.value = AuthState.SignedIn
