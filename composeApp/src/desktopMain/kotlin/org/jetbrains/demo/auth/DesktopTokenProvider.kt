@@ -32,7 +32,10 @@ import java.net.*
  * 2. Opens browser to Google OAuth URL
  * 3. Exchanges authorization code for ID token using Ktor HTTP client
  */
-class DesktopTokenProvider(private val config: DesktopConfig) : TokenProvider {
+class DesktopTokenProvider(
+    private val config: DesktopConfig,
+    private val preferences: EncryptedPreferences
+) : TokenProvider {
     private val httpClient = HttpClient(CIOClient) {
         install(ContentNegotiation) {
             json(Json {
@@ -42,12 +45,9 @@ class DesktopTokenProvider(private val config: DesktopConfig) : TokenProvider {
         }
     }
 
-    // Only in-memory stored for now
-    private var token: OAuth2? = null
-
     override suspend fun getToken(): String? = withContext(Dispatchers.IO) {
         Logger.app.d("DesktopTokenProvider: Token Storage not yet implemented.")
-        token?.extraParameters["id_token"]
+        preferences.get("id_token", null)
     }
 
     override suspend fun refreshToken(): String? = withContext(Dispatchers.IO) {
@@ -100,7 +100,8 @@ class DesktopTokenProvider(private val config: DesktopConfig) : TokenProvider {
             }
             Desktop.getDesktop().browse(URI(url))
             val oauth = callback.await()
-            token = oauth
+            val idToken = oauth.extraParameters["id_token"]
+            if (idToken != null) preferences.put("id_token", idToken)
             oauth.extraParameters["id_token"]
         } finally {
             withContext(NonCancellable) { server.stopSuspend(1000, 5000) }
@@ -109,7 +110,7 @@ class DesktopTokenProvider(private val config: DesktopConfig) : TokenProvider {
 
     override suspend fun clearToken() = withContext(Dispatchers.IO) {
         Logger.network.d("DesktopTokenProvider: Clearing token")
-        token = null
+        preferences.remove("id_token")
     }
 
     private fun createSuccessResponseHtml(): String = createHTML().html {

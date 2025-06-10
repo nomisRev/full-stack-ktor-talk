@@ -20,13 +20,14 @@ import org.jetbrains.demo.logging.Logger
 
 private const val KEY_ID_TOKEN = "id_token"
 
+
 class AndroidTokenProvider(private val context: Context, private val appConfig: AppConfig) : TokenProvider {
 
-    private val masterKey = MasterKey.Builder(context)
+    val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    private val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
+    val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
         context,
         "auth_tokens",
         masterKey,

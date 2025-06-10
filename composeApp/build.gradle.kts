@@ -17,7 +17,6 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-
     jvm("desktop") {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
@@ -134,7 +133,6 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "org.jetbrains.demo.MainKt"
-
         val properties = gradleLocalProperties(rootDir, providers)
         jvmArgs += listOf(
             "-DGOOGLE_CLIENT_ID=${System.getenv("GOOGLE_CLIENT_ID") ?: properties.getProperty("GOOGLE_CLIENT_ID", "")}",
