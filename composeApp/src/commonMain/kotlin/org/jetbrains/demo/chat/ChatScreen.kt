@@ -1,4 +1,4 @@
-package org.jetbrains.demo.ui
+package org.jetbrains.demo.chat
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,30 +11,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.sse.sse
-import io.ktor.client.request.parameter
-import kotlinx.coroutines.launch
-import org.jetbrains.demo.config.AppConfig
+import org.jetbrains.demo.ui.Logger
 import org.koin.compose.koinInject
 
 @Composable
 fun ChatScreen(
-    client: HttpClient = koinInject(),
-    config: AppConfig = koinInject(),
+    viewModel: ChatViewModel = koinInject(),
     onSignOut: () -> Unit
 ) {
     Logger.app.d("ChatScreen: Displaying chat for user")
 
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
+    val chatState by viewModel.state.collectAsState()
     var messageText by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+    LaunchedEffect(chatState.messages.size) {
+        if (chatState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(chatState.messages.size - 1)
         }
     }
 
@@ -90,7 +84,7 @@ fun ChatScreen(
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(messages) { message ->
+            items(chatState.messages) { message ->
                 MessageBubble(message = message)
             }
         }
@@ -113,59 +107,21 @@ fun ChatScreen(
 
             Button(
                 onClick = {
-                    if (messageText.isNotBlank() && !isLoading) {
-                        val userMessage = messageText
-                        messages = messages + ChatMessage(userMessage, true)
+                    if (messageText.isNotBlank() && !chatState.isLoading) {
+                        viewModel.sendMessage(messageText)
                         messageText = ""
-                        isLoading = true
-
-                        scope.launch {
-                            try {
-                                // Add a placeholder message for the AI response
-                                val aiMessageIndex = messages.size
-                                messages = messages + ChatMessage("", false, isStreaming = true)
-
-                                var aiResponse = ""
-                                client.sse(
-                                    urlString = "${config.apiBaseUrl}/chat",
-                                    request = {
-                                        parameter("message", userMessage)
-                                    }
-                                ) {
-                                    incoming.collect { event ->
-                                        event.data?.let { token ->
-                                            aiResponse += "$token "
-                                            // Update the AI message with accumulated response
-                                            messages = messages.toMutableList().apply {
-                                                set(aiMessageIndex, ChatMessage(aiResponse, false, isStreaming = true))
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Mark streaming as complete
-                                messages = messages.toMutableList().apply {
-                                    set(aiMessageIndex, ChatMessage(aiResponse, false, isStreaming = false))
-                                }
-                            } catch (e: Exception) {
-                                Logger.app.e("Error during SSE chat: ${e.message}")
-                                messages = messages + ChatMessage("Error: ${e.message}", false)
-                            } finally {
-                                isLoading = false
-                            }
-                        }
                     }
                 },
-                enabled = messageText.isNotBlank() && !isLoading
+                enabled = messageText.isNotBlank() && !chatState.isLoading
             ) {
-                if (isLoading) {
+                if (chatState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(if (isLoading) "Sending..." else "Send")
+                Text(if (chatState.isLoading) "Sending..." else "Send")
             }
         }
     }
@@ -223,9 +179,3 @@ private fun MessageBubble(message: ChatMessage) {
         }
     }
 }
-
-data class ChatMessage(
-    val text: String,
-    val isFromUser: Boolean,
-    val isStreaming: Boolean = false
-)

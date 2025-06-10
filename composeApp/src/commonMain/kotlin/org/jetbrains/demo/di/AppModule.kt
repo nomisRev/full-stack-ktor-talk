@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import co.touchlab.kermit.StaticConfig
 import org.jetbrains.demo.auth.AuthViewModel
+import org.jetbrains.demo.chat.ChatViewModel
 import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.network.HttpClient
 import org.jetbrains.demo.auth.TokenProvider
@@ -16,4 +17,5 @@ val appModule = module {
     singleOf(::AppConfig)
     singleOf(::HttpClient)
     factoryOf(::AuthViewModel)
+    factoryOf(::ChatViewModel)
 }
