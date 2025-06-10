@@ -37,13 +37,13 @@ kotlin {
             implementation(libs.googleid)
             implementation(libs.androidx.navigation.compose)
             implementation(libs.androidx.security.crypto)
-            implementation(libs.koin.android)
             implementation(libs.koin.androidx.compose)
         }
 
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation(libs.kotlinx.coroutines.swing)
                 implementation(libs.ktor.server.cio)
                 implementation(libs.ktor.server.auth)
                 implementation(libs.ktor.client.cio)
@@ -68,7 +68,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kermit)
             implementation(libs.koin.core)
-            implementation(projects.shared)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

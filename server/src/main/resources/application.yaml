@@ -11,3 +11,17 @@ app:
     jwkUrl: "https://www.googleapis.com/oauth2/v3/certs"
   ai:
     apiKey: "$OPENAI_API_KEY:"
+  database:
+    driverClassName: "$DB_DRIVER_CLASS_NAME:org.postgresql.Driver"
+    host: "$DB_HOST:localhost"
+    port: "$DATABASE_PORT:5432"
+    name: "$DB_NAME:ktor_sample"
+    username: "$DB_USERNAME:ktor_user"
+    password: "$DB_PASSWORD:ktor_password"
+    maxPoolSize: "$DB_MAX_POOL_SIZE:20"
+    cachePrepStmts: "$DB_CACHE_PREP_STMTS:true"
+    prepStmtCacheSize: "$DB_PREP_STMT_CACHE_SIZE:250"
+    prepStmtCacheSqlLimit: "$DB_PREP_STMT_CACHE_SQL_LIMIT:2048"
+    flyway:
+      locations: "$FLYWAY_LOCATIONS:classpath:db/migration"
+      baselineOnMigrate: "$FLYWAY_BASELINE_ON_MIGRATE:true"

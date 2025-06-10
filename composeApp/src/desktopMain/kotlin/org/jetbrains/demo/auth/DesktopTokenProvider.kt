@@ -1,5 +1,6 @@
 package org.jetbrains.demo.auth
 
+import co.touchlab.kermit.Logger
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
@@ -21,7 +22,6 @@ import kotlinx.html.*
 import kotlinx.html.stream.createHTML
 import kotlinx.serialization.json.*
 import org.jetbrains.demo.config.*
-import org.jetbrains.demo.logging.*
 import java.awt.*
 import java.net.*
 
@@ -34,8 +34,11 @@ import java.net.*
  */
 class DesktopTokenProvider(
     private val config: DesktopConfig,
-    private val preferences: EncryptedPreferences
+    private val preferences: EncryptedPreferences,
+    base: Logger,
 ) : TokenProvider {
+    private val logger = base.withTag("DesktopTokenProvider")
+
     private val httpClient = HttpClient(CIOClient) {
         install(ContentNegotiation) {
             json(Json {
@@ -46,11 +49,17 @@ class DesktopTokenProvider(
     }
 
     override suspend fun getToken(): String? = withContext(Dispatchers.IO) {
-        Logger.app.d("DesktopTokenProvider: Token Storage not yet implemented.")
+        logger.d("TokenProvider: GetToken")
         preferences.get("id_token", null)
     }
 
+    override suspend fun clearToken() = withContext(Dispatchers.IO) {
+        logger.d("Clearing token")
+        preferences.remove("id_token")
+    }
+
     override suspend fun refreshToken(): String? = withContext(Dispatchers.IO) {
+        logger.d("Refreshing token")
         val callback = CompletableDeferred<OAuth2>()
         val server = embeddedServer(CIO, port = 0) {
             val port = async { engine.resolvedConnectors().first().port }
@@ -91,6 +100,7 @@ class DesktopTokenProvider(
 
         try {
             server.startSuspend(wait = false)
+            logger.d("Refreshing token. Server started.")
             val port = server.engine.resolvedConnectors().first().port
             val response = httpClient.config {
                 followRedirects = false
@@ -98,19 +108,16 @@ class DesktopTokenProvider(
             val url = requireNotNull(response.headers["Location"]) {
                 "Expected Location header and 302 Found, but found ${response.status}."
             }
+            logger.d("Refreshing token. Opening browser.")
             Desktop.getDesktop().browse(URI(url))
             val oauth = callback.await()
             val idToken = oauth.extraParameters["id_token"]
             if (idToken != null) preferences.put("id_token", idToken)
+            logger.d("Received, and stored token.")
             oauth.extraParameters["id_token"]
         } finally {
             withContext(NonCancellable) { server.stopSuspend(1000, 5000) }
         }
-    }
-
-    override suspend fun clearToken() = withContext(Dispatchers.IO) {
-        Logger.network.d("DesktopTokenProvider: Clearing token")
-        preferences.remove("id_token")
     }
 
     private fun createSuccessResponseHtml(): String = createHTML().html {

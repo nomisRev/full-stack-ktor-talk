@@ -16,15 +16,22 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.demo.ai.AiService
 import org.jetbrains.demo.ai.KoogAiService
 import org.jetbrains.demo.auth.*
+import org.jetbrains.demo.config.database
+import org.jetbrains.demo.user.UserRepository
+import org.jetbrains.demo.user.userRoutes
 
 @Serializable
 data class AiConfig(val apiKey: String)
 
 fun Application.module() {
+    val database = database(property("app.database"))
     configureJwtAuth(property("app.jwk"))
+
+    val userRepository = UserRepository(database)
+    userRoutes(userRepository)
+
     install(SSE)
     val ai: AiService = KoogAiService(property<AiConfig>("app.ai"))
-
     routing {
         authenticate("google-jwt") {
             sse("/chat") {

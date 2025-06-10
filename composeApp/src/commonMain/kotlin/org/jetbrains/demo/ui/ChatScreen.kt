@@ -18,7 +18,7 @@ import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.config.AppConfig
-import org.jetbrains.demo.logging.Logger
+import org.jetbrains.demo.ui.Logger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 

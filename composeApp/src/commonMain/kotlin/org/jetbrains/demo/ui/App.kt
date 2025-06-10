@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.auth.*
-import org.jetbrains.demo.logging.Logger
+import org.jetbrains.demo.ui.Logger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -23,11 +23,10 @@ class AppComponent : KoinComponent {
 @Composable
 fun App() {
     Logger.app.d("App: Composable started")
-
     val appComponent = remember { AppComponent() }
     val authViewModel = appComponent.authViewModel
     val client = appComponent.client
-    
+
     val scope = rememberCoroutineScope()
     val isLoading by authViewModel.isLoading.collectAsState()
     val error by authViewModel.error.collectAsState()
@@ -35,7 +34,11 @@ fun App() {
 
     MaterialTheme {
         if (isLoggedIn) {
-            ChatScreen(client, onSignOut = { scope.launch { authViewModel.signOut() } })
+            ChatScreen(client, onSignOut = {
+                scope.launch {
+                    authViewModel.signOut()
+                }
+            })
         } else {
             Column(
                 modifier = Modifier
