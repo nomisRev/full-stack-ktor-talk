@@ -1,4 +1,4 @@
-package org.jetbrains.demo.auth
+package org.jetbrains.demo.feature.auth.data
 
 /**
  * Interface for providing authentication tokens to the HTTP client.

@@ -33,8 +33,8 @@ The JWT authentication is configured with:
 The following dependencies are added to support JWT authentication:
 
 ```kotlin
-implementation(libs.ktor.serverAuth)
-implementation(libs.ktor.serverAuthJwt)
+implementation(ktor.serverAuth)
+implementation(ktor.serverAuthJwt)
 implementation(libs.auth0.java.jwt)
 implementation(libs.auth0.jwks.rsa)
 ```

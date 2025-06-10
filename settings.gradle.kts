@@ -16,6 +16,15 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    versionCatalogs {
+        repositories {
+            mavenCentral()
+            maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
+        }
+        create("ktor") {
+            from("io.ktor:ktor-version-catalog:3.2.0-eap-1344")
+        }
+    }
     repositories {
         google {
             mavenContent {

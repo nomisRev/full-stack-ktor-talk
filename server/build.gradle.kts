@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.serialization)
     application
 }
@@ -16,19 +15,19 @@ application {
 
 dependencies {
     implementation(libs.logback)
-    implementation(libs.ktor.server.netty)
-    implementation(libs.ktor.server.config.yaml)
-    implementation(libs.ktor.server.auth.jwt)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.content.negotiation)
+    implementation(ktor.server.netty)
+    implementation(ktor.server.config.yaml)
+    implementation(ktor.server.auth.jwt)
+    implementation(ktor.server.contentNegotiation)
+    implementation(ktor.serialization.kotlinx.json)
+    implementation(ktor.client.cio)
+    implementation(ktor.client.contentNegotiation)
     implementation(libs.koog.agents)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.hikari)
     implementation(libs.postgresql)
     implementation(libs.flyway.postgresql)
-    testImplementation(libs.ktor.server.test.host)
+    testImplementation(ktor.server.testHost)
     testImplementation(libs.kotlin.test.junit)
 }

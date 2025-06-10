@@ -1,4 +1,6 @@
-This is a Kotlin Multiplatform project targeting Android, Server.
+# Kotlin Multiplatform Demo with Google Authentication
+
+This is a Kotlin Multiplatform project targeting Android and Server with Google Sign-In authentication and real-time chat functionality.
 
 * `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
@@ -7,11 +9,25 @@ This is a Kotlin Multiplatform project targeting Android, Server.
       For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
       `iosMain` would be the right folder for such calls.
 
-* `/server` is for the Ktor server application.
+* `/server` is for the Ktor server application that provides:
+    - JWT authentication with Google Sign-In
+    - User management API
+    - Real-time chat using Server-Sent Events (SSE)
+    - Integration with OpenAI for chat responses
 
 * `/shared` is for the code that will be shared between all targets in the project.
   The most important subfolder is `commonMain`. If preferred, you can add code to the platform-specific folders here
   too.
+
+* `/docs` contains project documentation and recommendations for improvements.
+
+## Key Features
+
+* **Cross-Platform UI**: Shared UI implementation using Compose Multiplatform
+* **Google Authentication**: OAuth2 implementation for both Android and Desktop
+* **Real-time Chat**: Server-Sent Events (SSE) for streaming chat responses
+* **Secure Token Management**: Encrypted storage and automatic token refresh
+* **AI Integration**: OpenAI-powered chat responses
 
 ## Google Sign-In Setup
 
@@ -60,6 +76,17 @@ API_BASE_URL=http://10.0.2.2:8080
 GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
+### Database Setup
+
+The server requires a PostgreSQL database. You can use the provided Docker Compose file:
+
+```bash
+cd docker
+docker-compose up -d
+```
+
+This will start a PostgreSQL instance with the correct configuration.
+
 ## HTTP Client with Authentication
 
 The project now includes a fully configured Ktor HttpClient with automatic authentication and token refresh:
@@ -72,42 +99,11 @@ The project now includes a fully configured Ktor HttpClient with automatic authe
 - **Content Negotiation**: Configured for JSON serialization/deserialization
 - **Logging**: Comprehensive HTTP request/response logging
 
-### Usage
-
-1. **Initialize the NetworkModule** (done in `MainActivity`):
-```kotlin
-NetworkModule.initialize(
-    context = this,
-    tokenStorage = tokenStorage
-)
-```
-
-2. **Get the authenticated HTTP client**:
-```kotlin
-val httpClient = NetworkModule.getHttpClient()
-val apiService = NetworkModule.getApiService()
-```
-
-3. **Make authenticated requests**:
-```kotlin
-// The HTTP client automatically includes authentication headers
-val userProfile = apiService.getUserProfile()
-val protectedData = apiService.getProtectedData()
-```
-
-### Architecture
-
-- **`TokenProvider`**: Common interface for token management
-- **`AndroidTokenProvider`**: Android implementation using `TokenStorage` and Google Credentials API
-- **`HttpClientFactory`**: Creates configured HTTP clients with authentication
-- **`NetworkModule`**: Provides singleton access to HTTP client and API services
-- **`ApiService`**: Example service showing how to use the authenticated client
-
 ### Token Refresh Flow
 
 1. HTTP request is made with current token from `TokenStorage`
 2. If server returns 401 (Unauthorized), Ktor Auth plugin triggers token refresh
-3. `AndroidTokenProvider.refreshToken()` gets a new Google ID token
+3. `TokenProvider.refreshToken()` gets a new Google ID token
 4. New token is saved to `TokenStorage`
 5. Original request is retried with the new token
 
