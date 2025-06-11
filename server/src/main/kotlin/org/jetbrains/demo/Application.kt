@@ -5,6 +5,7 @@ package org.jetbrains.demo
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
 import io.ktor.server.config.property
+import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.routing.*
 import io.ktor.server.sse.SSE
@@ -27,8 +28,9 @@ data class AiConfig(val apiKey: String)
 fun Application.module() {
     val database = database(property("app.database"))
     configureJwtAuth(property("app.jwk"))
-
-    install(CallLogging)
+    if (developmentMode) {
+        install(CallLogging)
+    }
 
     val userRepository = UserRepository(database)
     userRoutes(userRepository)

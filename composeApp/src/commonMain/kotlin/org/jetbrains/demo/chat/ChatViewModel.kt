@@ -2,19 +2,14 @@ package org.jetbrains.demo.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.sse.sse
-import io.ktor.client.request.parameter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.jetbrains.demo.config.AppConfig
-import org.jetbrains.demo.ui.Logger
+import org.jetbrains.demo.chat.repository.ChatRepository
 
 class ChatViewModel(
-    private val httpClient: HttpClient,
-    private val appConfig: AppConfig,
+    private val chatRepository: ChatRepository,
     base: co.touchlab.kermit.Logger
 ) : ViewModel() {
     private val logger = base.withTag("ChatViewModel")
@@ -41,23 +36,13 @@ class ChatViewModel(
                 updateMessages(_state.value.messages + ChatMessage("", false, isStreaming = true))
 
                 var aiResponse = ""
-                httpClient.sse(
-                    host = appConfig.apiBaseUrl,
-                    path = "/chat",
-                    request = {
-                        parameter("message", message)
+                chatRepository.sendMessage(message).collect { token ->
+                    aiResponse += token
+                    // Update the AI message with accumulated response
+                    val updatedMessages = _state.value.messages.toMutableList().apply {
+                        set(aiMessageIndex, ChatMessage(aiResponse, false, isStreaming = true))
                     }
-                ) {
-                    incoming.collect { event ->
-                        event.data?.let { token ->
-                            aiResponse += "$token "
-                            // Update the AI message with accumulated response
-                            val updatedMessages = _state.value.messages.toMutableList().apply {
-                                set(aiMessageIndex, ChatMessage(aiResponse, false, isStreaming = true))
-                            }
-                            updateMessages(updatedMessages)
-                        }
-                    }
+                    updateMessages(updatedMessages)
                 }
 
                 // Mark streaming as complete
@@ -66,7 +51,7 @@ class ChatViewModel(
                 }
                 updateMessages(finalMessages)
             } catch (e: Exception) {
-                logger.e("Error during SSE chat: ${e.message}")
+                logger.e("Error during chat: ${e.message}")
                 updateMessages(_state.value.messages + ChatMessage("Error: ${e.message}", false))
             } finally {
                 _state.value = _state.value.copy(isLoading = false)
