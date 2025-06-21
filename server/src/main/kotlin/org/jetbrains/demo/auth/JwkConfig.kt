@@ -6,8 +6,6 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.*
 import kotlinx.serialization.Serializable
-import org.jetbrains.demo.user.UserRepository
-import org.jetbrains.demo.user.UserTable
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
@@ -28,9 +26,9 @@ fun Application.configureJwtAuth(config: JwkConfig) {
             verifier(jwk, config.issuer) {
                 acceptLeeway(3)
             }
-            validate { credential ->
-                val subject: String? = credential.payload.subject
-                if (subject != null) GoogleIdToken(subject, credential.payload)
+            validate { cred: JWTCredential ->
+                val subject: String? = cred.payload.subject
+                if (subject != null) GoogleIdToken(subject, cred.payload)
                 else null
             }
         }

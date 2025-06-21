@@ -51,9 +51,9 @@ class AndroidTokenProvider(
                 logger.d("TokenProvider: Starting token refresh")
 
                 val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(true) // Try to use existing account first
-                    .setAutoSelectEnabled(true)
                     .setServerClientId(BuildConfig.GOOGLE_CLIENT_ID)
+                    .setFilterByAuthorizedAccounts(true)
+                    .setAutoSelectEnabled(true)
                     .setNonce(generateNonce())
                     .build()
 

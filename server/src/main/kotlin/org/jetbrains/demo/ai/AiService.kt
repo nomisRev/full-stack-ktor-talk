@@ -9,9 +9,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import org.jetbrains.demo.AiConfig
+import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+@Serializable
+data class AiConfig(val apiKey: String)
 
 interface AiService {
     fun askQuestion(prompt: String): Flow<String>

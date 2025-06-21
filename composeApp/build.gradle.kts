@@ -29,7 +29,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.lifecycle.viewmodel.compose)
-            implementation(ktor.client.android)
+            implementation(ktorLibs.client.android)
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.androidx.credentials)
@@ -45,9 +45,9 @@ kotlin {
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation(libs.kotlinx.coroutines.swing)
-                implementation(ktor.server.cio)
-                implementation(ktor.server.auth)
-                implementation(ktor.client.cio)
+                implementation(ktorLibs.server.cio)
+                implementation(ktorLibs.server.auth)
+                implementation(ktorLibs.client.cio)
                 implementation(libs.kotlinx.html)
             }
         }
@@ -60,11 +60,11 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(ktor.client.core)
-            implementation(ktor.client.auth)
-            implementation(ktor.serialization.kotlinx.json)
-            implementation(ktor.client.contentNegotiation)
-            implementation(ktor.client.logging)
+            implementation(ktorLibs.client.core)
+            implementation(ktorLibs.client.auth)
+            implementation(ktorLibs.serialization.kotlinx.json)
+            implementation(ktorLibs.client.contentNegotiation)
+            implementation(ktorLibs.client.logging)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kermit)
@@ -75,6 +75,15 @@ kotlin {
         }
     }
 }
+
+fun property(name: String): String {
+    val properties = gradleLocalProperties(rootDir, providers)
+    return System.getenv(name)
+        ?: System.getProperty(name)
+        ?: properties.getProperty(name, null)
+        ?: error("Property $name not found")
+}
+
 
 android {
     namespace = "org.jetbrains"
@@ -87,12 +96,16 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-
-        val properties = gradleLocalProperties(rootDir, providers)
-        val googleClientId = System.getenv("GOOGLE_CLIENT_ID") ?: properties.getProperty("GOOGLE_CLIENT_ID", "")
-        val apiBaseUrl = System.getenv("API_BASE_URL") ?: properties.getProperty("API_BASE_URL", "")
-        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField(
+            "String",
+            "GOOGLE_CLIENT_ID",
+            "\"${property("GOOGLE_CLIENT_ID")}\""
+        )
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${property("API_BASE_URL")}\""
+        )
     }
     packaging {
         resources {

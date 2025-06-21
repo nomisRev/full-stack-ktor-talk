@@ -46,3 +46,7 @@ fun App(
         }
     }
 }
+
+private enum class Screen {
+    Chat, About
+}

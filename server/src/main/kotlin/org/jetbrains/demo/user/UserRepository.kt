@@ -2,6 +2,7 @@ package org.jetbrains.demo.user
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
@@ -19,34 +20,49 @@ object UserTable : LongIdTable("users", "user_id") {
     val aboutMe = varchar("about_me", 256).nullable()
 }
 
-class UserRepository(private val database: Database) {
-    suspend fun create(subj: String): User = withContext(Dispatchers.IO) {
-        transaction(database) {
-            UserTable.upsertReturning(keys = arrayOf(UserTable.subject)) { upsert ->
-                upsert[subject] = subj
-            }.single().toUser()
-        }
-    }
 
-    suspend fun findOrNull(subj: String): User? = withContext(Dispatchers.IO) {
-        transaction(database) {
-            UserTable.selectAll().where { UserTable.subject eq subj }.singleOrNull()?.toUser()
-        }
-    }
+interface UserRepository {
+    suspend fun create(subject: String): User
+    suspend fun findOrNull(subject: String?): User?
+    suspend fun findAll(): List<User>
+    suspend fun findByEmail(email: String): User?
+    suspend fun create(subj: String, updateUser: UpdateUser): User
+    suspend fun delete(subj: String): Boolean
+}
 
-    suspend fun findAll(): List<User> = withContext(Dispatchers.IO) {
+class ExposedUserRepository(private val database: Database) : UserRepository {
+    override suspend fun create(subject: String): User =
+        withContext(Dispatchers.IO) {
+            transaction(database) {
+                UserTable.upsertReturning(
+                    keys = arrayOf(UserTable.subject)
+                ) { upsert ->
+                    upsert[UserTable.subject] = subject
+                }.single().toUser()
+            }
+        }
+
+    override suspend fun findOrNull(subject: String?): User? =
+        if (subject == null) null
+        else withContext(Dispatchers.IO) {
+            transaction(database) {
+                UserTable.selectAll().where { UserTable.subject eq subject }.singleOrNull()?.toUser()
+            }
+        }
+
+    override suspend fun findAll(): List<User> = withContext(Dispatchers.IO) {
         transaction(database) {
             UserTable.selectAll().map { it.toUser() }
         }
     }
 
-    suspend fun findByEmail(email: String): User? = withContext(Dispatchers.IO) {
+    override suspend fun findByEmail(email: String): User? = withContext(Dispatchers.IO) {
         transaction(database) {
             UserTable.selectAll().where { UserTable.email eq email }.singleOrNull()?.toUser()
         }
     }
 
-    suspend fun create(subj: String, updateUser: UpdateUser): User = withContext(Dispatchers.IO) {
+    override suspend fun create(subj: String, updateUser: UpdateUser): User = withContext(Dispatchers.IO) {
         transaction(database) {
             UserTable.updateReturning(where = { UserTable.subject eq subj }) { upsert ->
                 if (updateUser.email != null) upsert[email] = updateUser.email
@@ -56,9 +72,9 @@ class UserRepository(private val database: Database) {
         }
     }
 
-    suspend fun delete(subj: String) = withContext(Dispatchers.IO) {
+    override suspend fun delete(subj: String) = withContext(Dispatchers.IO) {
         transaction(database) {
-            UserTable.deleteWhere { UserTable.subject eq subj }
+            UserTable.deleteWhere { UserTable.subject eq subj } == 1
         }
     }
 

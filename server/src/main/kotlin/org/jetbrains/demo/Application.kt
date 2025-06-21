@@ -1,53 +1,72 @@
-@file:JvmName("Application")
-
 package org.jetbrains.demo
 
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
-import io.ktor.server.auth.authenticate
+import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.getAs
 import io.ktor.server.config.property
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.engine.stop
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.*
 import io.ktor.server.sse.SSE
-import io.ktor.server.sse.sse
-import io.ktor.server.util.getOrFail
-import io.ktor.sse.ServerSentEvent
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.pingPeriod
+import io.ktor.server.websocket.timeout
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import org.jetbrains.demo.ai.AiConfig
 import org.jetbrains.demo.ai.AiService
 import org.jetbrains.demo.ai.KoogAiService
+import org.jetbrains.demo.ai.installAiRoutes
 import org.jetbrains.demo.auth.*
+import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.config.database
+import org.jetbrains.demo.user.ExposedUserRepository
 import org.jetbrains.demo.user.UserRepository
 import org.jetbrains.demo.user.userRoutes
+import kotlin.time.Duration.Companion.seconds
 
-@Serializable
-data class AiConfig(val apiKey: String)
+fun main() {
+    val config = ApplicationConfig("application.yaml")
+        .property("app")
+        .getAs<AppConfig>()
 
-fun Application.module() {
-    val database = database(property("app.database"))
-    configureJwtAuth(property("app.jwk"))
-    if (developmentMode) {
-        install(CallLogging)
+    embeddedServer(Netty, host = config.host, port = config.port) {
+        app(config)
+    }.start(wait = true)
+}
+
+suspend fun Application.app(config: AppConfig) {
+    val database = database(config.database)
+    val userRepository: UserRepository = ExposedUserRepository(database)
+    val ai: AiService = KoogAiService(config.ai)
+
+    engine.stop()
+
+    if (developmentMode) install(CallLogging)
+    install(SSE)
+    install(WebSockets) {
+        pingPeriod = 15.seconds
+        timeout = 15.seconds
     }
 
-    val userRepository = UserRepository(database)
-    userRoutes(userRepository)
+    configureJwtAuth(config.jwk)
 
-    install(SSE)
-    val ai: AiService = KoogAiService(property<AiConfig>("app.ai"))
+    install(ContentNegotiation) {
+        json(Json {
+            encodeDefaults = true
+            isLenient = true
+        })
+    }
+
     routing {
-        authenticate("google-jwt") {
-            sse("/chat") {
-                val message = call.request.queryParameters.getOrFail("message")
-                withContext(Dispatchers.IO) {
-                    ai.askQuestion(message)
-                        .collect { token ->
-                            send(ServerSentEvent(token))
-                        }
-                }
-            }
-        }
+        userRoutes(userRepository)
+        installAiRoutes(ai)
     }
 }

@@ -8,15 +8,19 @@ import io.ktor.server.auth.principal
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.ktor.server.util.getOrFail
 import org.jetbrains.demo.auth.GoogleIdToken
 
 fun Application.userRoutes(users: UserRepository) = routing {
+    get("/") { call.respondText("Hello World!") }
+
     authenticate("google-jwt") {
         route("user") {
             install(ContentNegotiation) { json() }
@@ -28,12 +32,13 @@ fun Application.userRoutes(users: UserRepository) = routing {
 
             get("/") {
                 val idToken = call.principal<GoogleIdToken>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                val user = users.findOrNull(idToken.subject) ?: return@get call.respond(HttpStatusCode.NotFound)
-                call.respond(HttpStatusCode.OK, user)
+                val user = users.findOrNull(idToken.subject)
+                if (user == null) call.respond(HttpStatusCode.NotFound)
+                else call.respond(HttpStatusCode.OK, user)
             }
 
             get("/email/{email}") {
-                val email = call.parameters["email"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val email = call.parameters.getOrFail("email")
                 val user = users.findByEmail(email) ?: return@get call.respond(HttpStatusCode.NotFound)
                 call.respond(HttpStatusCode.OK, user)
             }

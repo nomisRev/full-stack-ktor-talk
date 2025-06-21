@@ -1,6 +1,11 @@
-# Kotlin Multiplatform Demo with Google Authentication
+# Droidcon Bangladesh 2025: Full Stack Ktor
 
-This is a Kotlin Multiplatform project targeting Android and Server with Google Sign-In authentication and real-time chat functionality.
+This repository contains an example project that was used for my Droidcon Bangladesh 2025 talk,
+the slides can be found here [Full stack Kotlin with Ktor.pdf](Full%20stack%20Kotlin%20with%20Ktor.pdf).
+
+## Kotlin Multiplatform Demo with Google Authentication
+
+This is a Kotlin Multiplatform project focusing on Android and Server with Google Sign-In authentication and real-time chat functionality.
 
 * `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:

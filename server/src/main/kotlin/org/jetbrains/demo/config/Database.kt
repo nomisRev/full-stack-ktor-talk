@@ -15,7 +15,7 @@ fun Application.database(config: DatabaseConfig): Database {
     val dataSource = dataSource(config)
     flyway(dataSource, config.flyway)
     val database = Database.connect(dataSource)
-    addCloseable {
+    monitor.subscribe(ApplicationStopped) {
         TransactionManager.closeAndUnregister(database)
         dataSource.close()
     }
@@ -44,7 +44,6 @@ data class DatabaseConfig(
     @Serializable
     data class Flyway(val locations: String, val baselineOnMigrate: Boolean)
 }
-
 
 fun flyway(dataSource: HikariDataSource, flywayConfig: DatabaseConfig.Flyway): MigrateResult =
     Flyway.configure()
