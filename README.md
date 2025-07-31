@@ -1,7 +1,7 @@
-# Droidcon Bangladesh 2025: Full Stack Ktor
+# Full Stack Ktor Talk
 
-This repository contains an example project that was used for my Droidcon Bangladesh 2025 talk,
-the slides can be found here [Full stack Kotlin with Ktor.pdf](Full%20stack%20Kotlin%20with%20Ktor.pdf).
+This repository contains an example project that was used for Full Stack talk:
+The slides can be found here [Full stack Kotlin with Ktor.pdf](Full%20stack%20Kotlin%20with%20Ktor.pdf).
 
 ## Kotlin Multiplatform Demo with Google Authentication
 
