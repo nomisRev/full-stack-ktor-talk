@@ -51,8 +51,9 @@ class ChatViewModel(
                 }
                 updateMessages(finalMessages)
             } catch (e: Exception) {
-                logger.e("Error during chat: ${e.message}")
-                updateMessages(_state.value.messages + ChatMessage("Error: ${e.message}", false))
+                val errorText = e.message ?: e.cause?.message ?: "Unknown error"
+                logger.e("Error during chat: $errorText", e)
+                updateMessages(_state.value.messages + ChatMessage("Error: $errorText", false))
             } finally {
                 _state.value = _state.value.copy(isLoading = false)
             }
