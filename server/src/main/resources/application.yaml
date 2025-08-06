@@ -1,11 +1,8 @@
 app:
-  host: "$KTOR_HOST:0.0.0.0"
-  port: "$KTOR_PORT:8080"
-  jwk:
-    issuer: "https://accounts.google.com"
-    jwkUrl: "https://www.googleapis.com/oauth2/v3/certs"
-  ai:
-    apiKey: "$OPENAI_API_KEY:"
+  host: "$HOST:0.0.0.0"
+  port: "$PORT:8080"
+  issuer: "$ISSUER:https://accounts.google.com"
+  apiKey: "$OPENAI_API_KEY:"
   database:
     driverClassName: "$DB_DRIVER_CLASS_NAME:org.postgresql.Driver"
     host: "$DB_HOST:localhost"

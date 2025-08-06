@@ -4,25 +4,26 @@ android-compileSdk = "35"
 android-minSdk = "34"
 android-targetSdk = "35"
 androidx-activity = "1.10.1"
-androidx-lifecycle = "2.9.0"
-androidx-lifecycle-viewmodel-compose = "2.9.1"
-androidx-navigation-compose = "2.9.0"
-compose-multiplatform = "1.8.1"
+androidx-lifecycle = "2.9.1"
+androidx-lifecycle-viewmodel-compose = "2.9.2"
+androidx-navigation-compose = "2.9.3"
+compose-multiplatform = "1.8.2"
 credentials = "1.5.0"
 googleid-version = "1.1.1"
-koogAgents = "0.2.0"
-kotlin = "2.1.21"
+koogAgents = "0.3.0.4"
+kotlin = "2.2.0"
 logback = "1.5.18"
-kotlinx-serialization = "1.8.1"
+kotlinx-serialization = "1.9.0"
 kotlinx-coroutines = "1.10.2"
 androidx-datastore = "1.1.7"
-androidx-security-crypto = "1.1.0-beta01"
+androidx-security-crypto = "1.1.0"
 kermit = "2.0.3"
 koin = "4.1.0"
 kotlinx-html = "0.12.0"
 exposed = "1.0.0-beta-2"
 hikari = "6.3.0"
-postgresql = "42.7.5"
+mockOauth2Server = "2.2.1"
+postgresql = "42.7.7"
 flyway = "11.8.0"
 
 [libraries]
@@ -30,6 +31,7 @@ androidx-credentials = { module = "androidx.credentials:credentials", version.re
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid-version" }
 koog-agents = { module = "ai.koog:koog-agents", version.ref = "koogAgents" }
+koog-ktor = { module = "ai.koog:koog-ktor", version.ref = "koogAgents" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
@@ -54,6 +56,7 @@ kotlinx-html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "k
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
 hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+mock-oauth2-server = { module = "no.nav.security:mock-oauth2-server", version.ref = "mockOauth2Server" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 

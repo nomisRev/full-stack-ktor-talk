@@ -10,19 +10,14 @@ pluginManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
-        mavenCentral()
         gradlePluginPortal()
     }
 }
 
 dependencyResolutionManagement {
     versionCatalogs {
-        repositories {
-            mavenCentral()
-            maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
-        }
         create("ktorLibs") {
-            from("io.ktor:ktor-version-catalog:3.2.0")
+            from("io.ktor:ktor-version-catalog:3.2.3")
         }
     }
     repositories {
@@ -33,10 +28,15 @@ dependencyResolutionManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
+        maven("https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public") {
+            mavenContent {
+                includeGroup("ai.koog")
+            }
+        }
         mavenCentral()
-        maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
     }
 }
 
 include(":composeApp")
 include(":server")
+include(":ktor-openid")

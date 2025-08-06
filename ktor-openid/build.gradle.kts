@@ -18,32 +18,17 @@ group = "org.jetbrains.demo"
 version = "1.0.0"
 
 dependencies {
-    implementation(project(":ktor-openid"))
-    implementation(libs.logback)
-    implementation(ktorLibs.server.netty)
-    implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.auth.jwt)
-    implementation(ktorLibs.server.callLogging)
     implementation(ktorLibs.server.contentNegotiation)
+    implementation(ktorLibs.server.sessions)
     implementation(ktorLibs.serialization.kotlinx.json)
-    implementation(ktorLibs.client.cio)
     implementation(ktorLibs.client.contentNegotiation)
-    implementation(libs.koog.ktor)
-    implementation(libs.exposed.jdbc)
-    implementation(libs.exposed.kotlin.datetime)
-    implementation(libs.hikari)
-    implementation(libs.postgresql)
-    implementation(libs.flyway.postgresql)
+    implementation(ktorLibs.client.cio)
+
+    testImplementation(ktorLibs.server.cio)
     testImplementation(ktorLibs.server.testHost)
     testImplementation(libs.kotlin.test.junit)
-}
-
-fun property(name: String): String {
-    val properties = gradleLocalProperties(rootDir, providers)
-    return System.getenv(name)
-        ?: System.getProperty(name)
-        ?: properties.getProperty(name, null)
-        ?: error("Property $name not found")
+    testImplementation(libs.mock.oauth2.server)
 }
 
 ktor {

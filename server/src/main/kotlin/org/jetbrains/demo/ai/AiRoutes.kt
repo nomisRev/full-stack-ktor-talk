@@ -6,18 +6,18 @@ import io.ktor.server.sse.sse
 import io.ktor.server.util.getOrFail
 import io.ktor.sse.ServerSentEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 
 fun Routing.installAiRoutes(ai: AiService) {
-    authenticate("google-jwt") {
+    authenticate("google") {
         sse("/chat") {
             val message = call.request.queryParameters.getOrFail("message")
-            withContext(Dispatchers.IO) {
-                ai.askQuestion(message)
-                    .collect { token ->
-                        send(ServerSentEvent(token))
-                    }
-            }
+            ai.askQuestion(message)
+                .flowOn(Dispatchers.IO)
+                .collect { token ->
+                    send(ServerSentEvent(token))
+                }
         }
     }
 }

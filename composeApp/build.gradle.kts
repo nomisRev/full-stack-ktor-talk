@@ -84,7 +84,6 @@ fun property(name: String): String {
         ?: error("Property $name not found")
 }
 
-
 android {
     namespace = "org.jetbrains"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
