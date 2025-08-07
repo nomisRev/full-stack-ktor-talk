@@ -38,14 +38,6 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
 }
 
-fun property(name: String): String {
-    val properties = gradleLocalProperties(rootDir, providers)
-    return System.getenv(name)
-        ?: System.getProperty(name)
-        ?: properties.getProperty(name, null)
-        ?: error("Property $name not found")
-}
-
 ktor {
     docker {
         localImageName = "ktor-ai-example"

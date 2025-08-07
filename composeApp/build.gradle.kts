@@ -47,11 +47,28 @@ kotlin {
                             }
                     }
             }
-            @OptIn(ExperimentalDistributionDsl::class)
-            distribution { outputDirectory = file("$rootDir/server/src/main/resources/web") }
         }
         binaries.executable()
     }
+    js {
+        binaries.executable()
+        browser {
+            commonWebpackConfig {
+                outputFileName = "kotlin-app-js.js"
+            }
+        }
+    }
+
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate {
+        common {
+            group("web") {
+                withJs()
+                withWasmJs()
+            }
+        }
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -189,17 +206,15 @@ compose.desktop {
 }
 
 tasks {
-    register("buildDevWebsite") {
-        group = "kotlin browser"
-        description = "Builds the website in development mode"
-        dependsOn("wasmJsBrowserDevelopmentWebpack")
-        dependsOn("wasmJsBrowserDevelopmentExecutableDistribution")
-    }
+    val buildWebApp by registering(Copy::class) {
+        val wasmDist = "wasmJsBrowserDistribution"
+        val jsDist = "jsBrowserDistribution"
+        dependsOn(wasmDist, jsDist)
 
-    register("buildProdWebsite") {
-        group = "kotlin browser"
-        description = "Builds the website in production mode"
-        dependsOn("wasmJsBrowserProductionWebpack")
-        dependsOn("wasmJsBrowserDistribution")
+        from(named(jsDist).get().outputs.files)
+        from(named(wasmDist).get().outputs.files)
+        into(layout.buildDirectory.dir("webApp"))
+        into(file("$rootDir/server/src/main/resources/web"))
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
     }
 }
