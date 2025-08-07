@@ -1,7 +1,6 @@
 package io.ktor.server.auth.openid
 
 import com.auth0.jwk.JwkProviderBuilder
-import com.auth0.jwt.JWT
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -52,8 +51,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.net.URL
-import java.time.Instant
+import java.net.URI
+import kotlin.coroutines.RestrictsSuspension
 
 class OpenIdConnect(
     val application: Application,
@@ -167,19 +166,41 @@ class OpenIdConnect(
         class OAuthConfig {
             var name: String = "openid-connect-oauth"
             var scopes: List<String> = listOf("openid", "profile", "email")
-            val redirectUri: URLBuilder.() -> Unit = { path("oauth", name, "redirect") }
-            val refreshUri: URLBuilder.() -> Unit = { path("oauth", name, "refresh") }
-            val loginUri: URLBuilder.() -> Unit = { path("oauth", name, "login") }
-            val redirectOnSuccessUri: URLBuilder.() -> Unit = loginUri
+            internal var redirectUri: URLBuilder.() -> Unit = { path("oauth", name, "redirect") }
+            internal var refreshUri: URLBuilder.() -> Unit = { path("oauth", name, "refresh") }
+            internal var loginUri: URLBuilder.() -> Unit = { path("oauth", name, "login") }
+            internal var redirectOnSuccessUri: (URLBuilder.() -> Unit)? = null
             internal var sessionName: String = "OPENID_SESSION"
-            internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit)? = null
+            internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal.UserInfo>.() -> Unit)? =
+                null
+            internal var handleCallback: (suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit)? = null
 
             fun session(
                 name: String = "OPENID_SESSION",
-                configure: CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit
+                configure: CookieSessionBuilder<OpenIdConnectPrincipal.UserInfo>.() -> Unit
             ) {
                 sessionName = name
                 cookieSessionBuilder = configure
+            }
+
+            fun redirectUri(uri: URLBuilder.() -> Unit) {
+                redirectUri = uri
+            }
+
+            fun refreshUri(uri: URLBuilder.() -> Unit) {
+                refreshUri = uri
+            }
+
+            fun loginUri(uri: URLBuilder.() -> Unit) {
+                loginUri = uri
+            }
+
+            fun redirectOnSuccessUri(uri: URLBuilder.() -> Unit) {
+                redirectOnSuccessUri = uri
+            }
+
+            fun handleSuccess(block: suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit) {
+                handleCallback = block
             }
         }
 
@@ -297,7 +318,7 @@ private fun Application.configureAuthentication(
     if (config.oauth.isNotEmpty()) {
         this@configureAuthentication.install(Sessions) {
             config.oauth.forEach { (_, triple) ->
-                cookie<OpenIdConnectPrincipal>(triple.third.sessionName) {
+                cookie<OpenIdConnectPrincipal.UserInfo>(triple.third.sessionName) {
                     if (triple.third.cookieSessionBuilder != null) {
                         triple.third.cookieSessionBuilder?.invoke(this)
                     } else {
@@ -312,10 +333,14 @@ private fun Application.configureAuthentication(
 
     config.oauth.forEach { (issuer, triple) ->
         val (clientId, clientSecret, oauthConfig) = triple
-        val callbackPath = URLBuilder().apply(oauthConfig.redirectUri).build()
+        val redirectUri = URLBuilder().apply(oauthConfig.redirectUri).build()
         val loginUri = URLBuilder().apply(oauthConfig.loginUri).build()
-        val redirectOnSuccessUri = URLBuilder().apply(oauthConfig.redirectOnSuccessUri).build()
+        val redirectOnSuccessUri = URLBuilder().apply(oauthConfig.redirectOnSuccessUri ?: oauthConfig.loginUri).build()
         val refreshUri = URLBuilder().apply(oauthConfig.refreshUri).build()
+        val handleCallback = oauthConfig.handleCallback ?: { principal ->
+            call.sessions.set(principal.userInfo())
+            call.respondRedirect(redirectOnSuccessUri.fullPath)
+        }
 
         openIdOauth2(
             configurations[issuer]!!,
@@ -324,12 +349,10 @@ private fun Application.configureAuthentication(
             clientId,
             clientSecret,
             loginUri.fullPath,
-            callbackPath.fullPath,
+            redirectUri.encodedPathAndQuery,
             refreshUri.fullPath,
-        ) {
-            call.sessions.set(it)
-            call.respondRedirect(redirectOnSuccessUri.fullPath)
-        }
+            handleCallback
+        )
     }
 
     config.jwks.forEach { (issuer, jwkConfig) ->
@@ -376,7 +399,9 @@ private class OpenIdConnectOauthAuthenticationProvider(
         @Suppress("unused", "invisible_reference")
         OAuthAuthenticationProvider(OAuthAuthenticationProvider.Config(name).apply {
             urlProvider = {
-                "${request.origin.scheme}//${request.host()}:${request.port()}$callback"
+                val url = "${request.origin.scheme}://${request.host()}:${request.port()}$callback"
+                application.log.debug("OAuth callback url: $url")
+                url
             }
             client = httpClient
             this.providerLookup = {
@@ -478,7 +503,7 @@ private class OpenIdConnectJwkAuthenticationProvider(
         @Suppress("unused", "invisible_reference")
         JWTAuthenticationProvider(JWTAuthenticationProvider.Config(name).apply {
             verifier(
-                JwkProviderBuilder(URL(config.jwksUri)).apply(jwkConfig.jwkBuilder).build(),
+                JwkProviderBuilder(URI(config.jwksUri).toURL()).apply(jwkConfig.jwkBuilder).build(),
                 config.issuer,
                 jwkConfig.verify
             )
