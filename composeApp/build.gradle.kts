@@ -1,6 +1,8 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
@@ -10,9 +12,12 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.hot.reload)
 }
 
 kotlin {
+    jvmToolchain(21)
+
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
@@ -25,8 +30,9 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
+    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-//        outputModuleName = "composeApp"
+        outputModuleName = "composeApp"
         browser {
             val rootDirPath = project.rootDir.path
             val projectDirPath = project.projectDir.path
@@ -108,6 +114,14 @@ fun property(name: String): String {
         ?: error("Property $name not found")
 }
 
+composeCompiler {
+    featureFlags.add(ComposeFeatureFlag.OptimizeNonSkippingGroups)
+}
+
+dependencies {
+    debugImplementation(compose.uiTooling)
+}
+
 android {
     namespace = "org.jetbrains"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -161,10 +175,6 @@ android {
     buildFeatures {
         buildConfig = true
     }
-}
-
-dependencies {
-    debugImplementation(compose.uiTooling)
 }
 
 compose.desktop {
