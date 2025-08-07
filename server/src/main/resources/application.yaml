@@ -1,8 +1,14 @@
 app:
   host: "$HOST:0.0.0.0"
   port: "$PORT:8080"
-  issuer: "$ISSUER:https://accounts.google.com"
+
+  auth:
+    issuer: "$ISSUER:https://accounts.google.com"
+    clientId: "$AUTH_CLIENT_ID:ktor-app"
+    secret: "$AUTH_CLIENT_SECRET:<empty>"
+
   apiKey: "$OPENAI_API_KEY:"
+
   database:
     driverClassName: "$DB_DRIVER_CLASS_NAME:org.postgresql.Driver"
     host: "$DB_HOST:localhost"
@@ -14,6 +20,7 @@ app:
     cachePrepStmts: "$DB_CACHE_PREP_STMTS:true"
     prepStmtCacheSize: "$DB_PREP_STMT_CACHE_SIZE:250"
     prepStmtCacheSqlLimit: "$DB_PREP_STMT_CACHE_SQL_LIMIT:2048"
+
     flyway:
       locations: "$FLYWAY_LOCATIONS:classpath:db/migration"
       baselineOnMigrate: "$FLYWAY_BASELINE_ON_MIGRATE:true"

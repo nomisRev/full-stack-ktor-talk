@@ -1,10 +1,12 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
@@ -23,8 +25,48 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-
+    wasmJs {
+//        outputModuleName = "composeApp"
+        browser {
+            val rootDirPath = project.rootDir.path
+            val projectDirPath = project.projectDir.path
+            commonWebpackConfig {
+                outputFileName = "composeApp.js"
+                devServer =
+                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+                        static =
+                            (static ?: mutableListOf()).apply {
+                                add(rootDirPath)
+                                add(projectDirPath)
+                            }
+                    }
+            }
+            @OptIn(ExperimentalDistributionDsl::class)
+            distribution { outputDirectory = file("$rootDir/server/src/main/resources/web") }
+        }
+        binaries.executable()
+    }
     sourceSets {
+        commonMain.dependencies {
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+            implementation(libs.androidx.lifecycle.viewmodel)
+            implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(ktorLibs.client.core)
+            implementation(ktorLibs.client.auth)
+            implementation(ktorLibs.serialization.kotlinx.json)
+            implementation(ktorLibs.client.contentNegotiation)
+            implementation(ktorLibs.client.logging)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kermit)
+            implementation(libs.koin.compose.viewmodel.navigation)
+            implementation(libs.androidx.navigation.compose)
+        }
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -46,29 +88,11 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation(libs.kotlinx.coroutines.swing)
                 implementation(ktorLibs.server.cio)
+                implementation(project(":ktor-openid"))
                 implementation(ktorLibs.server.auth)
                 implementation(ktorLibs.client.cio)
                 implementation(libs.kotlinx.html)
             }
-        }
-        commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodel)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(ktorLibs.client.core)
-            implementation(ktorLibs.client.auth)
-            implementation(ktorLibs.serialization.kotlinx.json)
-            implementation(ktorLibs.client.contentNegotiation)
-            implementation(ktorLibs.client.logging)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kermit)
-            implementation(libs.koin.compose.viewmodel.navigation)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -124,6 +148,7 @@ android {
     buildTypes {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("String", "API_BASE_URL", "\"10.0.2.2\"")
         }
         getByName("release") {
             isMinifyEnabled = false
@@ -150,5 +175,21 @@ compose.desktop {
             "-DGOOGLE_CLIENT_ID=${System.getenv("GOOGLE_CLIENT_ID") ?: properties.getProperty("GOOGLE_CLIENT_ID", "")}",
             "-DAPI_BASE_URL=${System.getenv("API_BASE_URL") ?: properties.getProperty("API_BASE_URL", "")}"
         )
+    }
+}
+
+tasks {
+    register("buildDevWebsite") {
+        group = "kotlin browser"
+        description = "Builds the website in development mode"
+        dependsOn("wasmJsBrowserDevelopmentWebpack")
+        dependsOn("wasmJsBrowserDevelopmentExecutableDistribution")
+    }
+
+    register("buildProdWebsite") {
+        group = "kotlin browser"
+        description = "Builds the website in production mode"
+        dependsOn("wasmJsBrowserProductionWebpack")
+        dependsOn("wasmJsBrowserDistribution")
     }
 }

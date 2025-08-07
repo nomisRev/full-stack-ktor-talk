@@ -7,9 +7,8 @@ import io.ktor.server.util.getOrFail
 import io.ktor.sse.ServerSentEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.withContext
 
-fun Routing.installAiRoutes(ai: AiService) {
+fun Routing.aiRoutes(ai: AiService) {
     authenticate("google") {
         sse("/chat") {
             val message = call.request.queryParameters.getOrFail("message")

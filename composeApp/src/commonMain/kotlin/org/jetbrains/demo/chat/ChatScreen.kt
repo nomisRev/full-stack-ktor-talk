@@ -11,12 +11,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import org.jetbrains.demo.auth.AuthViewModel
 import org.jetbrains.demo.ui.Logger
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = koinInject(),
+    authViewModel: AuthViewModel = koinViewModel(),
     onSignOut: () -> Unit
 ) {
     Logger.app.d("ChatScreen: Displaying chat for user")
@@ -64,7 +68,12 @@ fun ChatScreen(
                 }
 
                 Button(
-                    onClick = onSignOut,
+                    onClick = {
+                        scope.launch {
+                            authViewModel.signOut()
+                            onSignOut()
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     )

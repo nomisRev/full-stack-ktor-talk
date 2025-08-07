@@ -2,6 +2,7 @@ package org.jetbrains.demo
 
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.clients.openai.OpenAIModels.CostOptimized.GPT4oMini
+import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.openid.OpenIdConnect
@@ -20,20 +21,25 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.ai.AiService
 import org.jetbrains.demo.ai.KoogAiService
-import org.jetbrains.demo.ai.installAiRoutes
+import org.jetbrains.demo.ai.aiRoutes
 import org.jetbrains.demo.user.ExposedUserRepository
 import org.jetbrains.demo.user.UserRepository
 import org.jetbrains.demo.user.userRoutes
+import org.jetbrains.demo.website.staticContent
+import kotlin.math.log
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class AppConfig(
     val host: String,
     val port: Int,
-    val issuer: String,
+    val auth: AuthConfig,
     val apiKey: String,
     val database: DatabaseConfig,
 )
+
+@Serializable
+data class AuthConfig(val issuer: String, val secret: String, val clientId: String)
 
 fun main() {
     val config = ApplicationConfig("application.yaml")
@@ -56,8 +62,9 @@ suspend fun Application.app(config: AppConfig) {
 
 private fun Application.routes(userRepository: UserRepository, ai: AiService) {
     routing {
+        staticContent()
         userRoutes(userRepository)
-        installAiRoutes(ai)
+        aiRoutes(ai)
     }
 }
 
@@ -65,8 +72,13 @@ private fun Application.configure(config: AppConfig) {
     if (developmentMode) install(CallLogging)
     install(SSE)
     install(OpenIdConnect) {
-        jwk(config.issuer) {
+        jwk(config.auth.issuer) {
             name = "google"
+        }
+        oauth(config.auth.issuer, config.auth.clientId, config.auth.secret) {
+            loginUri { path("login") }
+            redirectUri { path("callback") }
+            redirectOnSuccessUri { path("home") }
         }
     }
     install(WebSockets) {

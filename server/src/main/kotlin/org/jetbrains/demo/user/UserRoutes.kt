@@ -17,8 +17,6 @@ import io.ktor.server.routing.routing
 import io.ktor.server.util.getOrFail
 
 fun Application.userRoutes(users: UserRepository) = routing {
-    get("/") { call.respondText("Hello World!") }
-
     authenticate("google") {
         route("user") {
             post("/register") {
