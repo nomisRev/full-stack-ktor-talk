@@ -30,19 +30,24 @@ fun App(
     val start = if (isLoggedIn()) Screen.Chat else Screen.LogIn
 
     MaterialTheme {
+        Logger.app.d("App: Creating NavHost with $start")
         NavHost(navController, start) {
-
+            Logger.app.d("NavHost building")
             composable<Screen.Chat> {
-                ChatScreen { navController.navigate(Screen) }
+                Logger.app.d("NavHost: Screen.Chat")
+                ChatScreen { navController.navigate(Screen.LogIn) }
             }
             composable<Screen.LogIn> {
+                Logger.app.d("NavHost: Screen.LogIn")
                 SignInContent { navController.navigate(Screen.Chat) }
             }
         }
     }
 
     LaunchedEffect(navController) {
+        Logger.app.d("App: onNavHostReady")
         onNavHostReady(navController)
+        Logger.app.d("App: onNavHostReady - Done")
     }
 }
 

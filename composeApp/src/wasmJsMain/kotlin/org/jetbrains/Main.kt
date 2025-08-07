@@ -20,13 +20,23 @@ fun isLoggedIn(): Boolean {
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
+@OptIn(
+    ExperimentalComposeUiApi::class,
+    ExperimentalBrowserHistoryApi::class
+)
 fun main() {
-    val body = document.body ?: return
     startKoin { modules(appModule) }
-    ComposeViewport(body) {
+    ComposeViewport("ComposeApp") {
         MaterialTheme {
-            App({ controller -> window.bindToNavigation(controller) }) { isLoggedIn() }
+            App({ controller ->
+                window.bindToNavigation(controller) { entry ->
+                    val route = entry.destination.route.orEmpty()
+                    when  {
+                        route == "chat" -> ""
+                        else -> route
+                    }
+                }
+            }) { isLoggedIn() }
         }
     }
 }

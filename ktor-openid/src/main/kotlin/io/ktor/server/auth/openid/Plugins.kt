@@ -1,6 +1,7 @@
 package io.ktor.server.auth.openid
 
 import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.jwt.JWT
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -9,6 +10,8 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode.Companion.Unauthorized
 import io.ktor.http.Parameters
 import io.ktor.http.URLBuilder
+import io.ktor.http.auth.HttpAuthHeader
+import io.ktor.http.auth.parseAuthorizationHeader
 import io.ktor.http.fullPath
 import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
@@ -42,8 +45,10 @@ import io.ktor.server.routing.application
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.sessions.CookieSessionBuilder
+import io.ktor.server.sessions.SessionStorageMemory
 import io.ktor.server.sessions.Sessions
 import io.ktor.server.sessions.cookie
+import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import io.ktor.server.sessions.set
 import io.ktor.util.AttributeKey
@@ -52,7 +57,6 @@ import kotlinx.coroutines.async
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.net.URI
-import kotlin.coroutines.RestrictsSuspension
 
 class OpenIdConnect(
     val application: Application,
@@ -149,6 +153,7 @@ class OpenIdConnect(
         internal var oauth: MutableMap<String, Triple<String, String, OAuthConfig>> = mutableMapOf()
 
         var httpClient: HttpClient? = null
+        var storage: SessionStorageMemory? = null
 
         class JwkConfig {
             var name: String = "openid-connect-jwk"
@@ -156,7 +161,6 @@ class OpenIdConnect(
             var verify: JWTConfigureFunction = {}
             var validate: suspend ApplicationCall.(JWTCredential) -> Any? =
                 { credential -> credential.payload.extractUserInfo() }
-
         }
 
         fun jwk(issuer: String, configure: JwkConfig.() -> Unit = {}) {
@@ -171,13 +175,13 @@ class OpenIdConnect(
             internal var loginUri: URLBuilder.() -> Unit = { path("oauth", name, "login") }
             internal var redirectOnSuccessUri: (URLBuilder.() -> Unit)? = null
             internal var sessionName: String = "OPENID_SESSION"
-            internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal.UserInfo>.() -> Unit)? =
+            internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit)? =
                 null
             internal var handleCallback: (suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit)? = null
 
             fun session(
                 name: String = "OPENID_SESSION",
-                configure: CookieSessionBuilder<OpenIdConnectPrincipal.UserInfo>.() -> Unit
+                configure: CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit
             ) {
                 sessionName = name
                 cookieSessionBuilder = configure
@@ -292,7 +296,12 @@ class OpenIdConnect(
             val configurations = (config.oauth.keys + config.jwks.keys)
                 .associateWith { issuer -> application.async { client.discover(issuer) } }
 
-            application.configureAuthentication(config, configurations, client)
+            application.configureAuthentication(
+                config,
+                configurations,
+                client,
+                config.storage ?: SessionStorageMemory()
+            )
 
             val openIdConnect = OpenIdConnect(
                 application,
@@ -313,12 +322,16 @@ class OpenIdConnect(
 private fun Application.configureAuthentication(
     config: OpenIdConnect.Config,
     configurations: Map<String, Deferred<OpenIdConfiguration>>,
-    client: HttpClient
+    client: HttpClient,
+    storageMemory: SessionStorageMemory
 ) {
     if (config.oauth.isNotEmpty()) {
         this@configureAuthentication.install(Sessions) {
             config.oauth.forEach { (_, triple) ->
-                cookie<OpenIdConnectPrincipal.UserInfo>(triple.third.sessionName) {
+                cookie<OpenIdConnectPrincipal>(
+                    triple.third.sessionName,
+                    storage = storageMemory
+                ) {
                     if (triple.third.cookieSessionBuilder != null) {
                         triple.third.cookieSessionBuilder?.invoke(this)
                     } else {
@@ -338,7 +351,7 @@ private fun Application.configureAuthentication(
         val redirectOnSuccessUri = URLBuilder().apply(oauthConfig.redirectOnSuccessUri ?: oauthConfig.loginUri).build()
         val refreshUri = URLBuilder().apply(oauthConfig.refreshUri).build()
         val handleCallback = oauthConfig.handleCallback ?: { principal ->
-            call.sessions.set(principal.userInfo())
+            call.sessions.set(principal)
             call.respondRedirect(redirectOnSuccessUri.fullPath)
         }
 
@@ -356,13 +369,15 @@ private fun Application.configureAuthentication(
     }
 
     config.jwks.forEach { (issuer, jwkConfig) ->
+        val checkSession = config.oauth[issuer] != null
         authentication {
             register(
-                OpenIdConnectJwkAuthenticationProvider(
+                OpenIdConnectJwkAndSessionAuthenticationProvider(
                     application = this@configureAuthentication,
                     name = jwkConfig.name,
-                    config = OpenIdConnectJwkAuthenticationProvider.Config(jwkConfig.name),
+                    config = OpenIdConnectJwkAndSessionAuthenticationProvider.Config(jwkConfig.name),
                     configuration = configurations[issuer]!!,
+                    checkSession = checkSession,
                     jwkConfig = jwkConfig,
                 )
             )
@@ -412,7 +427,6 @@ private class OpenIdConnectOauthAuthenticationProvider(
                     requestMethod = HttpMethod.Post,
                     clientId = clientId,
                     clientSecret = clientSecret,
-                    onStateCreated = { call, state -> println("call: $state") },
                     defaultScopes = this@OpenIdConnectOauthAuthenticationProvider.scopes.toList()
                 )
             }
@@ -465,7 +479,7 @@ private fun Application.openIdOauth2(
                 val idToken = oauth.extraParameters["id_token"]
                     ?: return@get call.respond(Unauthorized, "id_token is missing from the OAuth response")
                 val principal =
-                    OpenIdConnectPrincipal(idToken = idToken, refreshToken = oauth.refreshToken)
+                    OpenIdConnectPrincipal(idToken = idToken, refreshToken = oauth.refreshToken, userInfo = JWT.decode(idToken).extractUserInfo())
                 handleCallback(principal)
             }
             get(refresh) {
@@ -489,12 +503,14 @@ private fun Application.openIdOauth2(
 
 /**
  * [AuthenticationProvider] that delegates to [JWTAuthenticationProvider] but awaits the auto-discovery in [onAuthenticate].
+ * Combines JWK & Session authentication in a single provider.
  */
-private class OpenIdConnectJwkAuthenticationProvider(
+private class OpenIdConnectJwkAndSessionAuthenticationProvider(
     application: Application,
     name: String,
     config: Config,
     private val configuration: Deferred<OpenIdConfiguration>,
+    private val checkSession: Boolean,
     private val jwkConfig: OpenIdConnect.Config.JwkConfig,
 ) : AuthenticationProvider(config) {
     private val provider = application.async {
@@ -507,6 +523,16 @@ private class OpenIdConnectJwkAuthenticationProvider(
                 config.issuer,
                 jwkConfig.verify
             )
+            authHeader { call ->
+                if (checkSession) {
+                    call.sessions.get<OpenIdConnectPrincipal>()
+                        ?.idToken
+                        ?.let { HttpAuthHeader.Single("Bearer", it) }
+                        ?: call.request.headers["Authorization"]?.let { parseAuthorizationHeader(it) }
+                } else {
+                    call.request.headers["Authorization"]?.let { parseAuthorizationHeader(it) }
+                }
+            }
             this.validate(jwkConfig.validate)
         })
     }
@@ -541,6 +567,7 @@ private suspend fun refreshOpenIdToken(
     return OpenIdConnectPrincipal(
         idToken = idToken,
         refreshToken = response.refresh_token
-            ?: refreshToken, // Use the new refresh token if provided, otherwise keep the old one
+            ?: refreshToken, // Use the new refresh token if provided, otherwise keep the old one,
+        userInfo = JWT.decode(idToken).extractUserInfo()
     )
 }

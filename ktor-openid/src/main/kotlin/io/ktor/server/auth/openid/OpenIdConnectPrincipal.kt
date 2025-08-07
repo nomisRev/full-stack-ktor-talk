@@ -14,13 +14,10 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class OpenIdConnectPrincipal(
-    @SerialName("id_token")
     val idToken: String,
-    @SerialName("refresh_token")
     val refreshToken: String? = null,
+    val userInfo: UserInfo
 ) {
-    fun userInfo(): UserInfo = JWT.decode(idToken).extractUserInfo()
-
     /**
      * User information extracted from the ID token
      *

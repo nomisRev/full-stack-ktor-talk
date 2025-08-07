@@ -26,7 +26,6 @@ import org.jetbrains.demo.user.ExposedUserRepository
 import org.jetbrains.demo.user.UserRepository
 import org.jetbrains.demo.user.userRoutes
 import org.jetbrains.demo.website.staticContent
-import kotlin.math.log
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable

@@ -14,13 +14,12 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.jetbrains.demo.auth.AuthViewModel
 import org.jetbrains.demo.ui.Logger
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ChatScreen(
-    viewModel: ChatViewModel = koinInject(),
-    authViewModel: AuthViewModel = koinViewModel(),
+    viewModel: ChatViewModel = koinViewModel(),
+    /*authViewModel: AuthViewModel = koinViewModel(),*/
     onSignOut: () -> Unit
 ) {
     Logger.app.d("ChatScreen: Displaying chat for user")
@@ -70,7 +69,7 @@ fun ChatScreen(
                 Button(
                     onClick = {
                         scope.launch {
-                            authViewModel.signOut()
+//                            authViewModel.signOut()
                             onSignOut()
                         }
                     },

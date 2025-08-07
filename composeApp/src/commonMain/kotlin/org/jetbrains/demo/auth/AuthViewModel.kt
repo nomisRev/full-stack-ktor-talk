@@ -25,8 +25,7 @@ class AuthViewModel(
     }
 
     private val _state = MutableStateFlow<AuthState>(
-        if (tokenStorage.getToken() != null) AuthState.SignedIn
-        else AuthState.SignedOut
+        if (tokenStorage.getToken() != null) AuthState.SignedIn else AuthState.SignedOut
     )
     val state: StateFlow<AuthState> = _state.asStateFlow()
 

@@ -13,13 +13,12 @@ import org.jetbrains.demo.auth.TokenProvider
  * [TokenProvider] is optional since browser works with sessions.
  */
 fun HttpClient(
-    tokenProvider: TokenProvider?,
     baseLogger: Logger,
 ): HttpClient = HttpClient {
     val logger = baseLogger.withTag("HttpClient")
     install(ContentNegotiation) { json() }
     install(SSE)
-    if (tokenProvider != null) withAuthBearer(tokenProvider, logger)
+//    if (tokenProvider != null) withAuthBearer(tokenProvider, logger)
 }
 
 private fun HttpClientConfig<*>.withAuthBearer(tokenProvider: TokenProvider, logger: Logger) {

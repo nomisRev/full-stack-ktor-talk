@@ -37,7 +37,7 @@ kotlin {
             val rootDirPath = project.rootDir.path
             val projectDirPath = project.projectDir.path
             commonWebpackConfig {
-                outputFileName = "composeApp.js"
+                outputFileName = "kotlin-app-wasm-js.js"
                 devServer =
                     (devServer ?: KotlinWebpackConfig.DevServer()).apply {
                         static =
@@ -53,6 +53,7 @@ kotlin {
     js {
         binaries.executable()
         browser {
+            outputModuleName = "composeApp"
             commonWebpackConfig {
                 outputFileName = "kotlin-app-js.js"
             }
@@ -131,10 +132,6 @@ fun property(name: String): String {
         ?: error("Property $name not found")
 }
 
-composeCompiler {
-    featureFlags.add(ComposeFeatureFlag.OptimizeNonSkippingGroups)
-}
-
 dependencies {
     debugImplementation(compose.uiTooling)
 }
@@ -206,10 +203,14 @@ compose.desktop {
 }
 
 tasks {
+    val cleanWebApp by registering(Delete::class) {
+        delete(file("$rootDir/server/src/main/resources/web"))
+    }
+
     val buildWebApp by registering(Copy::class) {
         val wasmDist = "wasmJsBrowserDistribution"
         val jsDist = "jsBrowserDistribution"
-        dependsOn(wasmDist, jsDist)
+        dependsOn(cleanWebApp, wasmDist, jsDist)
 
         from(named(jsDist).get().outputs.files)
         from(named(wasmDist).get().outputs.files)
