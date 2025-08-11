@@ -19,6 +19,8 @@ import io.ktor.server.websocket.pingPeriod
 import io.ktor.server.websocket.timeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.demo.agent.events
+import org.jetbrains.demo.agent.tools
 import org.jetbrains.demo.ai.AiService
 import org.jetbrains.demo.ai.KoogAiService
 import org.jetbrains.demo.ai.aiRoutes
@@ -34,6 +36,7 @@ data class AppConfig(
     val port: Int,
     val auth: AuthConfig,
     val apiKey: String,
+    val weatherApiUrl: String,
     val database: DatabaseConfig,
 )
 
@@ -56,6 +59,7 @@ suspend fun Application.app(config: AppConfig) {
     val ai: AiService = KoogAiService(OpenAILLMClient(config.apiKey), GPT4oMini)
 
     configure(config)
+    events(config)
     routes(userRepository, ai)
 }
 

@@ -9,6 +9,8 @@ app:
 
   apiKey: "$OPENAI_API_KEY:"
 
+  weatherApiUrl: "$WEATHER_API_URL:https://api.open-meteo.com/v1/forecast"
+
   database:
     driverClassName: "$DB_DRIVER_CLASS_NAME:org.postgresql.Driver"
     host: "$DB_HOST:localhost"

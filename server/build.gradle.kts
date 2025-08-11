@@ -17,9 +17,14 @@ application {
 group = "org.jetbrains.demo"
 version = "1.0.0"
 
+kotlin {
+    compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
+}
+
 dependencies {
     implementation(project(":ktor-openid"))
     implementation(libs.logback)
+    implementation(libs.koog.agents)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.auth.jwt)
