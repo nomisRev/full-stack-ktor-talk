@@ -9,7 +9,6 @@ import org.jetbrains.demo.chat.repository.ChatRepository
 import org.jetbrains.demo.chat.repository.HttpChatRepository
 import org.jetbrains.demo.config.AppConfig
 import org.jetbrains.demo.network.HttpClient
-import org.jetbrains.demo.auth.TokenProvider
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind

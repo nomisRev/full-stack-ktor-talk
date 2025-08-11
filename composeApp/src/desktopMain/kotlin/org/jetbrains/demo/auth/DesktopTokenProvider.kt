@@ -7,16 +7,12 @@ import io.ktor.client.request.get
 import io.ktor.client.engine.cio.CIO as CIOClient
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.auth.OAuthAccessTokenResponse.OAuth2
-import io.ktor.server.auth.OAuthServerSettings
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.authentication
-import io.ktor.server.auth.oauth
+import io.ktor.server.application.install
+import io.ktor.server.auth.openid.OpenIdConnect
+import io.ktor.server.auth.openid.OpenIdConnectPrincipal
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
 import kotlinx.coroutines.*
 import kotlinx.html.*
 import kotlinx.html.stream.createHTML
@@ -38,8 +34,17 @@ class DesktopTokenProvider(
     private val config: DesktopConfig,
     private val preferences: EncryptedPreferences,
     base: Logger,
-) : TokenProvider {
+) : TokenProvider, AutoCloseable {
     private val logger = base.withTag("DesktopTokenProvider")
+    private val httpClient = HttpClient(CIOClient) {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            })
+        }
+        followRedirects = false
+    }
 
     override fun getToken(): String? {
         val token = preferences.get(KEY_ID_TOKEN, null)
@@ -54,76 +59,48 @@ class DesktopTokenProvider(
 
     override suspend fun refreshToken(): String? = withContext(Dispatchers.IO) {
         logger.d("Refreshing token")
-        HttpClient(CIOClient) {
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                })
-            }
-        }.use { httpClient ->
-            val callback = CompletableDeferred<OAuth2>()
-            val server = embeddedServer(CIO) {
-                val port = async { engine.resolvedConnectors().first().port }
-                authentication {
-                    oauth("oauth") {
-                        @OptIn(ExperimentalCoroutinesApi::class)
-                        urlProvider = { "http://localhost:${port.getCompleted()}/callback" }
-                        providerLookup = {
-                            OAuthServerSettings.OAuth2ServerSettings(
-                                name = "google",
-                                authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
-                                accessTokenUrl = "https://oauth2.googleapis.com/token",
-                                requestMethod = HttpMethod.Post,
-                                clientId = config.clientId,
-                                clientSecret = config.clientSecret,
-                                defaultScopes = listOf("email"),
-                            )
-                        }
-                        client = httpClient
+        val callback = CompletableDeferred<OpenIdConnectPrincipal?>()
+        val server = embeddedServer(CIO) {
+            install(OpenIdConnect) {
+                oauth("https://accounts.google.com", config.clientId, config.clientSecret) {
+                    loginUri { path("login") }
+                    redirectUri { path("callback") }
+                    onFailure {
+                        callback.complete(null)
+                        call.respondText(createErrorResponseHtml(), ContentType.Text.Html)
                     }
-                }
-                routing {
-                    authenticate("oauth") {
-                        get("/login") {}
-                        get("/callback") {
-                            val principal: OAuth2? = call.authentication.principal()
-                            if (principal == null) {
-                                callback.completeExceptionally(IllegalStateException("No OAuth2 principal"))
-                                call.respondText(createErrorResponseHtml(), ContentType.Text.Html)
-                            } else {
-                                callback.complete(principal)
-                                call.respondText(createSuccessResponseHtml(), ContentType.Text.Html)
-                            }
-                        }
+                    onSuccess { principal ->
+                        callback.complete(principal)
+                        call.respondText(createSuccessResponseHtml(), ContentType.Text.Html)
                     }
-                }
-            }
-
-            try {
-                server.startSuspend(wait = false)
-                logger.d("Refreshing token. Server started.")
-                val port = server.engine.resolvedConnectors().first().port
-                val response = httpClient.config {
-                    followRedirects = false
-                }.get("http://localhost:$port/login")
-                val url = requireNotNull(response.headers["Location"]) {
-                    "Expected Location header and 302 Found, but found ${response.status}."
-                }
-                logger.d("Refreshing token. Opening browser.")
-                Desktop.getDesktop().browse(URI(url))
-                val oauth = callback.await()
-                val idToken = oauth.extraParameters[KEY_ID_TOKEN]
-                if (idToken != null) preferences.put(KEY_ID_TOKEN, idToken)
-                logger.d("Received, and stored token.")
-                oauth.extraParameters[KEY_ID_TOKEN]
-            } finally {
-                withContext(NonCancellable) {
-                    server.stopSuspend(1000, 5000)
-                    httpClient.close()
                 }
             }
         }
+
+        try {
+            server.startSuspend(wait = false)
+            logger.d("Refreshing token. Server started.")
+            val port = server.engine.resolvedConnectors().first().port
+            val response = httpClient.get("http://localhost:$port/login")
+            val url = requireNotNull(response.headers["Location"]) {
+                "Expected Location header and 302 Found, but found ${response.status}."
+            }
+            logger.d("Refreshing token. Opening browser to $url")
+            Desktop.getDesktop().browse(URI(url))
+            val oauth = callback.await()
+            val idToken = oauth?.idToken
+            if (idToken != null) preferences.put(KEY_ID_TOKEN, idToken)
+            logger.d("Received, and stored token.")
+            oauth?.idToken
+        } finally {
+            withContext(NonCancellable) {
+                server.stopSuspend(1000, 5000)
+            }
+        }
+    }
+
+    override fun close() {
+        httpClient.close()
     }
 
     private fun createSuccessResponseHtml(): String = createHTML().html {

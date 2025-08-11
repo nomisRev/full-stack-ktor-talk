@@ -59,6 +59,9 @@ public suspend fun <Input, Output> ServerSSESession.sseAgent(
     )
 }
 
+fun AIAgentConfig.withSystemPrompt(prompt: Prompt): AIAgentConfig =
+    AIAgentConfig(prompt, model, maxAgentIterations, missingToolsConversionStrategy)
+
 public suspend inline fun <reified Input, reified Output> ServerSSESession.sseAgent(
     strategy: AIAgentStrategy<Input, Output>,
     model: LLModel,

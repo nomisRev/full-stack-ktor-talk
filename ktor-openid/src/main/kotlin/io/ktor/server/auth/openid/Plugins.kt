@@ -177,7 +177,8 @@ class OpenIdConnect(
             internal var sessionName: String = "OPENID_SESSION"
             internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit)? =
                 null
-            internal var handleCallback: (suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit)? = null
+            internal var handleSuccess: (suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit)? = null
+            internal var handleFailure: (suspend RoutingContext.() -> Unit)? = null
 
             fun session(
                 name: String = "OPENID_SESSION",
@@ -203,8 +204,12 @@ class OpenIdConnect(
                 redirectOnSuccessUri = uri
             }
 
-            fun handleSuccess(block: suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit) {
-                handleCallback = block
+            fun onSuccess(block: suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit) {
+                handleSuccess = block
+            }
+
+            fun onFailure(block: suspend RoutingContext.() -> Unit) {
+                handleFailure = block
             }
         }
 
@@ -350,7 +355,8 @@ private fun Application.configureAuthentication(
         val loginUri = URLBuilder().apply(oauthConfig.loginUri).build()
         val redirectOnSuccessUri = URLBuilder().apply(oauthConfig.redirectOnSuccessUri ?: oauthConfig.loginUri).build()
         val refreshUri = URLBuilder().apply(oauthConfig.refreshUri).build()
-        val handleCallback = oauthConfig.handleCallback ?: { principal ->
+        val handleFailure = oauthConfig.handleFailure ?: { call.respond(Unauthorized) }
+        val handleSuccess = oauthConfig.handleSuccess ?: { principal ->
             call.sessions.set(principal)
             call.respondRedirect(redirectOnSuccessUri.fullPath)
         }
@@ -364,7 +370,8 @@ private fun Application.configureAuthentication(
             loginUri.fullPath,
             redirectUri.encodedPathAndQuery,
             refreshUri.fullPath,
-            handleCallback
+            handleSuccess,
+            handleFailure
         )
     }
 
@@ -453,6 +460,7 @@ private fun Application.openIdOauth2(
     callback: String,
     refresh: String,
     handleCallback: suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit,
+    handleFailure: suspend RoutingContext.() -> Unit,
 ) {
     authentication {
         register(
@@ -474,12 +482,13 @@ private fun Application.openIdOauth2(
         authenticate(config.name) {
             get(login) {}
             get(callback) {
-                val oauth = call.principal<OAuthAccessTokenResponse.OAuth2>()
-                    ?: return@get call.respond(Unauthorized, "OAuth token is missing from the response")
-                val idToken = oauth.extraParameters["id_token"]
-                    ?: return@get call.respond(Unauthorized, "id_token is missing from the OAuth response")
-                val principal =
-                    OpenIdConnectPrincipal(idToken = idToken, refreshToken = oauth.refreshToken, userInfo = JWT.decode(idToken).extractUserInfo())
+                val oauth = call.principal<OAuthAccessTokenResponse.OAuth2>() ?: return@get handleFailure()
+                val idToken = oauth.extraParameters["id_token"] ?: return@get handleFailure()
+                val principal = OpenIdConnectPrincipal(
+                    idToken = idToken,
+                    refreshToken = oauth.refreshToken,
+                    userInfo = JWT.decode(idToken).extractUserInfo()
+                )
                 handleCallback(principal)
             }
             get(refresh) {
