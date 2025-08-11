@@ -1,8 +1,9 @@
-package org.jetbrains.demo.agent
+package org.jetbrains.demo.agent.ktor
 
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.AIAgent.FeatureContext
 import ai.koog.agents.core.agent.AIAgentBase
+import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.config.AIAgentConfigBase
 import ai.koog.agents.core.agent.context.AIAgentContextBase
 import ai.koog.agents.core.agent.entity.AIAgentNodeBase
@@ -12,11 +13,14 @@ import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.core.tools.ToolResult
 import ai.koog.agents.features.eventHandler.feature.EventHandler
+import ai.koog.ktor.Koog
 import ai.koog.prompt.dsl.ModerationResult
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
+import io.ktor.server.application.pluginOrNull
+import io.ktor.server.sse.ServerSSESession
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -25,8 +29,53 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import java.lang.IllegalStateException
 import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+public suspend fun <Input, Output> ServerSSESession.sseAgent(
+    inputType: KType,
+    outputType: KType,
+    strategy: AIAgentStrategy<Input, Output>,
+    model: LLModel,
+    tools: ToolRegistry = ToolRegistry.EMPTY,
+    clock: Clock = Clock.System,
+    // TODO We need to create a proper `AgentConfig` builder inside of Ktor that allows overriding global configuration.
+    configureAgent: (AIAgentConfig) -> (AIAgentConfig) = { it },
+    installFeatures: FeatureContext.() -> Unit = {}
+): SSEAgent<Input, Output> {
+    val plugin = requireNotNull(call.application.pluginOrNull(Koog)) { "Plugin $Koog is not configured" }
+
+    @Suppress("invisible_reference", "invisible_member")
+    return SSEAgent(
+        inputType = inputType,
+        outputType = outputType,
+        promptExecutor = plugin.promptExecutor,
+        strategy = strategy,
+        agentConfig = plugin.agentConfig(model).let(configureAgent),
+        toolRegistry = plugin.agentConfig.toolRegistry + tools,
+        clock = clock,
+        installFeatures = installFeatures
+    )
+}
+
+public suspend inline fun <reified Input, reified Output> ServerSSESession.sseAgent(
+    strategy: AIAgentStrategy<Input, Output>,
+    model: LLModel,
+    tools: ToolRegistry = ToolRegistry.EMPTY,
+    clock: Clock = Clock.System,
+    noinline configureAgent: (AIAgentConfig) -> (AIAgentConfig) = { it },
+    noinline installFeatures: FeatureContext.() -> Unit = {}
+): SSEAgent<Input, Output> = sseAgent(
+    typeOf<Input>(),
+    typeOf<Output>(),
+    strategy,
+    model,
+    tools,
+    clock,
+    configureAgent,
+    installFeatures
+)
 
 @OptIn(ExperimentalUuidApi::class)
 class SSEAgent<Input, Output>(

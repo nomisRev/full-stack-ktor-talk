@@ -3,7 +3,6 @@ package org.jetbrains.demo.agent
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.core.tools.reflect.asTools
 import ai.koog.agents.mcp.McpToolRegistryProvider
-import ai.koog.prompt.executor.model.PromptExecutor
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation

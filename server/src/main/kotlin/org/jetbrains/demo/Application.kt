@@ -19,8 +19,7 @@ import io.ktor.server.websocket.pingPeriod
 import io.ktor.server.websocket.timeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.jetbrains.demo.agent.events
-import org.jetbrains.demo.agent.tools
+import org.jetbrains.demo.agent.chat.events
 import org.jetbrains.demo.ai.AiService
 import org.jetbrains.demo.ai.KoogAiService
 import org.jetbrains.demo.ai.aiRoutes
