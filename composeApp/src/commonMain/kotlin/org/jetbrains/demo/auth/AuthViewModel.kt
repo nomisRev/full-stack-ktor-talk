@@ -55,7 +55,7 @@ class AuthViewModel(
         }
     }
 
-    suspend fun signOut() {
+    fun signOut() {
         tokenStorage.clearToken()
         _state.value = AuthState.SignedOut
     }

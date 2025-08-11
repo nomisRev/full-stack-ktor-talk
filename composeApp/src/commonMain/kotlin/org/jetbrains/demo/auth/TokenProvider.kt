@@ -20,5 +20,5 @@ interface TokenProvider {
     /**
      * Clears the stored authentication token.
      */
-    suspend fun clearToken()
+    fun clearToken()
 }

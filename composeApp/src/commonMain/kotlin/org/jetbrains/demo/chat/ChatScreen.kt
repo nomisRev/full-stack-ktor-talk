@@ -19,7 +19,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = koinViewModel(),
-    /*authViewModel: AuthViewModel = koinViewModel(),*/
     onSignOut: () -> Unit
 ) {
     Logger.app.d("ChatScreen: Displaying chat for user")
@@ -67,12 +66,7 @@ fun ChatScreen(
                 }
 
                 Button(
-                    onClick = {
-                        scope.launch {
-//                            authViewModel.signOut()
-                            onSignOut()
-                        }
-                    },
+                    onClick = onSignOut,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     )

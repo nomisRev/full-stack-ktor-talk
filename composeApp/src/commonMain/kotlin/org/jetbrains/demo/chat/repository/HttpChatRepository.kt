@@ -7,6 +7,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.jetbrains.demo.config.AppConfig
 import co.touchlab.kermit.Logger
+import io.ktor.client.request.url
+import io.ktor.http.URLBuilder
+import io.ktor.http.buildUrl
+import io.ktor.http.parseUrl
+import io.ktor.http.takeFrom
 
 /**
  * Implementation of ChatRepository that uses HttpClient to communicate with the chat API.
@@ -19,18 +24,19 @@ class HttpChatRepository(
     private val logger = base.withTag("HttpChatRepository")
 
     override suspend fun sendMessage(message: String): Flow<String> = flow {
-            httpClient.sse(
-                host = appConfig.apiBaseUrl,
-                path = "/chat",
-                request = {
-                    parameter("message", message)
-                }
-            ) {
-                incoming.collect { event ->
-                    event.data?.let { token ->
-                        emit(token)
-                    }
+        httpClient.sse(request = {
+            URLBuilder("${appConfig.apiBaseUrl}/chat").apply {
+                parameter("message", message)
+            }.also {
+                println("############################ SSE URL: ${it.buildString()}")
+                this.url.takeFrom(it)
+            }
+        }) {
+            incoming.collect { event ->
+                event.data?.let { token ->
+                    emit(token)
                 }
             }
+        }
     }
 }

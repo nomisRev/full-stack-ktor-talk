@@ -5,8 +5,6 @@ import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.engine.cio.CIO as CIOClient
-import io.ktor.client.engine.cio.CIOEngineConfig
-import io.ktor.client.request.unixSocket
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.auth.OAuthAccessTokenResponse.OAuth2
@@ -49,7 +47,7 @@ class DesktopTokenProvider(
         return token
     }
 
-    override suspend fun clearToken() = withContext(Dispatchers.IO) {
+    override fun clearToken() {
         logger.d("Clearing token")
         preferences.remove(KEY_ID_TOKEN)
     }
@@ -77,7 +75,7 @@ class DesktopTokenProvider(
                                 authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
                                 accessTokenUrl = "https://oauth2.googleapis.com/token",
                                 requestMethod = HttpMethod.Post,
-                                clientId = config.googleClientId,
+                                clientId = config.clientId,
                                 clientSecret = config.clientSecret,
                                 defaultScopes = listOf("email"),
                             )

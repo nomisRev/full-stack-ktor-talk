@@ -4,7 +4,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -14,20 +13,24 @@ import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.chat.ChatScreen
 import org.koin.compose.koinInject
 
-@Composable
-fun hasToken(): Boolean {
-    val authViewModel = koinInject<AuthViewModel>()
-    return authViewModel.state.collectAsStateWithLifecycle().value is AuthViewModel.AuthState.SignedIn
+interface AuthSession {
+    fun hasToken(): Boolean
+    fun clearToken()
+}
+
+fun AuthSession(auth: AuthViewModel): AuthSession = object : AuthSession {
+    override fun hasToken(): Boolean = auth.state.value is AuthViewModel.AuthState.SignedIn
+    override fun clearToken() = auth.signOut()
 }
 
 @Composable
 fun App(
     onNavHostReady: suspend (NavController) -> Unit = {},
-    isLoggedIn: @Composable () -> Boolean,
+    authSession: AuthSession,
 ) {
     Logger.app.d("App: Composable started")
     val navController = rememberNavController()
-    val start = if (isLoggedIn()) Screen.Chat else Screen.LogIn
+    val start = if (authSession.hasToken()) Screen.Chat else Screen.LogIn
 
     MaterialTheme {
         Logger.app.d("App: Creating NavHost with $start")
@@ -35,7 +38,10 @@ fun App(
             Logger.app.d("NavHost building")
             composable<Screen.Chat> {
                 Logger.app.d("NavHost: Screen.Chat")
-                ChatScreen { navController.navigate(Screen.LogIn) }
+                ChatScreen {
+                    authSession.clearToken()
+                    navController.navigate(Screen.LogIn)
+                }
             }
             composable<Screen.LogIn> {
                 Logger.app.d("NavHost: Screen.LogIn")
