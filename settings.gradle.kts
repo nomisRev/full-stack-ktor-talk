@@ -43,4 +43,5 @@ plugins {
 
 include(":composeApp")
 include(":server")
+include(":shared")
 include(":ktor-openid")

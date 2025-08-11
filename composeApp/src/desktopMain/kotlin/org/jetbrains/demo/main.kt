@@ -7,6 +7,7 @@ import org.jetbrains.demo.di.appModule
 import org.jetbrains.demo.di.desktopModule
 import org.jetbrains.demo.ui.App
 import org.jetbrains.demo.ui.AuthSession
+import org.jetbrains.demo.ui.Screen
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
 

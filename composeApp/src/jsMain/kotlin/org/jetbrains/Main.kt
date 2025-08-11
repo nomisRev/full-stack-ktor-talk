@@ -1,6 +1,5 @@
 package org.jetbrains
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import androidx.navigation.ExperimentalBrowserHistoryApi
@@ -31,11 +30,9 @@ fun main() {
     onWasmReady {
         startKoin { modules(appModule) }
         ComposeViewport("ComposeApp") {
-            MaterialTheme {
-                App({ controller ->
-                    window.bindToNavigation(controller)
-                }, WebAuthSession)
-            }
+            App({ controller ->
+                window.bindToNavigation(controller)
+            }, WebAuthSession)
         }
     }
 }

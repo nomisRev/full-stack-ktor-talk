@@ -11,6 +11,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.chat.ChatScreen
+import org.jetbrains.demo.journey.JourneyPlannerScreen
 import org.koin.compose.koinInject
 
 interface AuthSession {
@@ -32,20 +33,26 @@ fun App(
     val navController = rememberNavController()
     val start = if (authSession.hasToken()) Screen.Chat else Screen.LogIn
 
-    MaterialTheme {
-        Logger.app.d("App: Creating NavHost with $start")
-        NavHost(navController, start) {
-            Logger.app.d("NavHost building")
-            composable<Screen.Chat> {
-                Logger.app.d("NavHost: Screen.Chat")
-                ChatScreen {
-                    authSession.clearToken()
-                    navController.navigate(Screen.LogIn)
+    AppTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Logger.app.d("App: Creating NavHost with $start")
+            NavHost(navController, start) {
+                Logger.app.d("NavHost building")
+                composable<Screen.Chat> {
+                    Logger.app.d("NavHost: Screen.Chat")
+                    ChatScreen {
+                        authSession.clearToken()
+                        navController.navigate(Screen.LogIn)
+                    }
                 }
-            }
-            composable<Screen.LogIn> {
-                Logger.app.d("NavHost: Screen.LogIn")
-                SignInContent { navController.navigate(Screen.Chat) }
+                composable<Screen.LogIn> {
+                    Logger.app.d("NavHost: Screen.LogIn")
+                    SignInContent { navController.navigate(Screen.Chat) }
+                }
+                composable<Screen.Planner> {
+                    Logger.app.d("NavHost: Screen.Planner")
+                    JourneyPlannerScreen()
+                }
             }
         }
     }
@@ -66,4 +73,8 @@ object Screen {
     @Serializable
     @SerialName("login")
     data object LogIn
+
+    @Serializable
+    @SerialName("planner")
+    data object Planner
 }
