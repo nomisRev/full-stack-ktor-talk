@@ -22,7 +22,7 @@ object WebAuthSession : AuthSession {
     }
 
     override fun clearToken() {
-        TODO("Navigate to logout page")
+        window.location.href = "/logout"
     }
 }
 

@@ -17,7 +17,7 @@ import org.koin.dsl.module
 val appModule = module {
     single<Logger> { Logger(config = StaticConfig(minSeverity = Severity.Debug)) }
     singleOf(::AppConfig)
-    singleOf(::HttpClient)
+    single { HttpClient(get(), getOrNull()) }
     singleOf(::HttpChatRepository) bind ChatRepository::class
     factoryOf(::AuthViewModel)
     factoryOf(::ChatViewModel)

@@ -1,14 +1,16 @@
 package org.jetbrains.demo.website
 
+import io.ktor.server.application.Application
 import io.ktor.server.auth.openid.OpenIdConnectPrincipal
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 
-fun Routing.staticContent() {
+fun Application.website() = routing {
     get("/") {
         val hasSession = call.sessions.get<OpenIdConnectPrincipal>() != null
         val redirectUrl = if (hasSession) "/home" else "login"

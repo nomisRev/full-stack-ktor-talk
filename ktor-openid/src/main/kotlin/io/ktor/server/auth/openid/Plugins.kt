@@ -173,12 +173,18 @@ class OpenIdConnect(
             internal var redirectUri: URLBuilder.() -> Unit = { path("oauth", name, "redirect") }
             internal var refreshUri: URLBuilder.() -> Unit = { path("oauth", name, "refresh") }
             internal var loginUri: URLBuilder.() -> Unit = { path("oauth", name, "login") }
+            internal var logoutUri: URLBuilder.() -> Unit = { path("oauth", name, "logout") }
             internal var redirectOnSuccessUri: (URLBuilder.() -> Unit)? = null
+            internal var postLogoutRedirectUri: (URLBuilder.() -> Unit)? = null
             internal var sessionName: String = "OPENID_SESSION"
             internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit)? =
                 null
             internal var handleSuccess: (suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit)? = null
             internal var handleFailure: (suspend RoutingContext.() -> Unit)? = null
+            internal var handleLogoutWithEndSession: (suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration, String) -> Unit)? =
+                null
+            internal var handleLogoutFallback: (suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration) -> Unit)? =
+                null
 
             fun session(
                 name: String = "OPENID_SESSION",
@@ -200,8 +206,16 @@ class OpenIdConnect(
                 loginUri = uri
             }
 
+            fun logoutUri(uri: URLBuilder.() -> Unit) {
+                logoutUri = uri
+            }
+
             fun redirectOnSuccessUri(uri: URLBuilder.() -> Unit) {
                 redirectOnSuccessUri = uri
+            }
+
+            fun postLogoutRedirectUri(uri: URLBuilder.() -> Unit) {
+                postLogoutRedirectUri = uri
             }
 
             fun onSuccess(block: suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit) {
@@ -210,6 +224,14 @@ class OpenIdConnect(
 
             fun onFailure(block: suspend RoutingContext.() -> Unit) {
                 handleFailure = block
+            }
+
+            fun onLogoutWithEndSession(block: suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration, String) -> Unit) {
+                handleLogoutWithEndSession = block
+            }
+
+            fun onLogoutFallback(block: suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration) -> Unit) {
+                handleLogoutFallback = block
             }
         }
 
@@ -355,11 +377,25 @@ private fun Application.configureAuthentication(
         val loginUri = URLBuilder().apply(oauthConfig.loginUri).build()
         val redirectOnSuccessUri = URLBuilder().apply(oauthConfig.redirectOnSuccessUri ?: oauthConfig.loginUri).build()
         val refreshUri = URLBuilder().apply(oauthConfig.refreshUri).build()
+        val logoutUri = URLBuilder().apply(oauthConfig.logoutUri).build()
+        val postLogoutRedirectUri =
+            URLBuilder().apply(oauthConfig.postLogoutRedirectUri ?: oauthConfig.loginUri).build()
         val handleFailure = oauthConfig.handleFailure ?: { call.respond(Unauthorized) }
         val handleSuccess = oauthConfig.handleSuccess ?: { principal ->
             call.sessions.set(principal)
             call.respondRedirect(redirectOnSuccessUri.fullPath)
         }
+        val handleLogoutWithEndSession = oauthConfig.handleLogoutWithEndSession ?: { principal, _, endSessionEndpoint ->
+            val absolutePostLogout =
+                "${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}$postLogoutRedirectUri"
+            val redirectUrl = URLBuilder(endSessionEndpoint).apply {
+                parameters.append("id_token_hint", principal.idToken)
+                parameters.append("post_logout_redirect_uri", absolutePostLogout)
+            }.buildString()
+            call.respondRedirect(redirectUrl)
+        }
+        val handleLogoutFallback =
+            oauthConfig.handleLogoutFallback ?: { _, _ -> call.respondRedirect(postLogoutRedirectUri) }
 
         openIdOauth2(
             configurations[issuer]!!,
@@ -370,8 +406,12 @@ private fun Application.configureAuthentication(
             loginUri.fullPath,
             redirectUri.encodedPathAndQuery,
             refreshUri.fullPath,
+            logoutUri.fullPath,
+            postLogoutRedirectUri.fullPath,
             handleSuccess,
-            handleFailure
+            handleFailure,
+            handleLogoutWithEndSession,
+            handleLogoutFallback
         )
     }
 
@@ -459,8 +499,12 @@ private fun Application.openIdOauth2(
     login: String,
     callback: String,
     refresh: String,
+    logout: String,
+    postLogoutRedirect: String,
     handleCallback: suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit,
     handleFailure: suspend RoutingContext.() -> Unit,
+    handleLogoutWithEndSession: suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration, String) -> Unit,
+    handleLogoutFallback: suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration) -> Unit,
 ) {
     authentication {
         register(
@@ -507,6 +551,21 @@ private fun Application.openIdOauth2(
                 call.sessions.set(principal)
             }
         }
+        get(logout) {
+            val configuration = configuration.await()
+            val endSessionEndpoint = configuration.endSessionEndpoint
+            val principal = (call.sessions.get(config.sessionName) as? OpenIdConnectPrincipal)
+                ?: return@get call.respond(Unauthorized)
+            call.sessions.clear(config.sessionName)
+
+            if (endSessionEndpoint != null) {
+                application.log.trace("Logging out with end session endpoint: $endSessionEndpoint")
+                handleLogoutWithEndSession(principal, configuration, endSessionEndpoint)
+            } else {
+                application.log.trace("No end session endpoint found, redirecting to post logout redirect uri: $postLogoutRedirect")
+                handleLogoutFallback(principal, configuration)
+            }
+        }
     }
 }
 
@@ -524,6 +583,8 @@ private class OpenIdConnectJwkAndSessionAuthenticationProvider(
 ) : AuthenticationProvider(config) {
     private val provider = application.async {
         val config = configuration.await()
+
+        application.log.debug("Using issuer ${config.issuer} for JWK ${jwkConfig.name} with sessions($checkSession)")
 
         @Suppress("unused", "invisible_reference")
         JWTAuthenticationProvider(JWTAuthenticationProvider.Config(name).apply {

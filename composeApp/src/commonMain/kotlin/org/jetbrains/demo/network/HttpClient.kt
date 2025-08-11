@@ -14,11 +14,17 @@ import org.jetbrains.demo.auth.TokenProvider
  */
 fun HttpClient(
     baseLogger: Logger,
+    tokenProvider: TokenProvider?
 ): HttpClient = HttpClient {
     val logger = baseLogger.withTag("HttpClient")
     install(ContentNegotiation) { json() }
     install(SSE)
-//    if (tokenProvider != null) withAuthBearer(tokenProvider, logger)
+    if (tokenProvider != null) {
+        logger.d("TokenProvider is not null, applying header authentication")
+        withAuthBearer(tokenProvider, logger)
+    } else {
+        logger.d("TokenProvider is null, skipping header authentication. (On browser this is expected, we use sessions)")
+    }
 }
 
 private fun HttpClientConfig<*>.withAuthBearer(tokenProvider: TokenProvider, logger: Logger) {

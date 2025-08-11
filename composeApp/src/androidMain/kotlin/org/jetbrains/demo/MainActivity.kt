@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             KoinMultiplatformApplication(
                 koinConfiguration {
-                    modules(appModule, androidModule)
+                    modules(androidModule, appModule)
                 }) {
                 App({  }, AuthSession(koinViewModel<AuthViewModel>()))
             }

@@ -1,11 +1,14 @@
 package org.jetbrains.demo.agent.chat
 
 import ai.koog.agents.ext.agent.chatAgentStrategy
+import ai.koog.ktor.Koog
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.*
 import ai.koog.prompt.markdown.markdown
 import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
 import io.ktor.server.sse.sse
 import io.ktor.server.util.getOrFail
@@ -17,23 +20,25 @@ import org.jetbrains.demo.agent.ktor.sseAgent
 import org.jetbrains.demo.agent.ktor.withSystemPrompt
 import org.jetbrains.demo.agent.tools
 
-fun Application.events(config: AppConfig) {
+fun Application.agent(config: AppConfig) {
     val deferredTools = async { tools(config) }
+
     routing {
-        // TODO session auth
-        sse("/plan") {
-            val userQuestion = call.request.queryParameters.getOrFail("question")
-            sseAgent(
-                chatAgentStrategy(),
-                OpenAIModels.CostOptimized.GPT4oMini,
-                deferredTools.await(),
-                configureAgent = { it.withSystemPrompt(system()) }
-            ).run(userQuestion)
-                .filter { it is SSEAgent.Event.Agent || it is SSEAgent.Event.Tool }
-                .collect {
-                    println(it)
-                    send(data = it.toString())
-                }
+        authenticate("google") {
+            sse("/chat") {
+                val userQuestion = call.request.queryParameters.getOrFail("question")
+                sseAgent(
+                    chatAgentStrategy(),
+                    OpenAIModels.CostOptimized.GPT4oMini,
+                    deferredTools.await(),
+                    configureAgent = { it.withSystemPrompt(system()) }
+                ).run(userQuestion)
+                    .filter { it is SSEAgent.Event.Agent || it is SSEAgent.Event.Tool }
+                    .collect {
+                        println(it)
+                        send(data = it.toString())
+                    }
+            }
         }
     }
 }

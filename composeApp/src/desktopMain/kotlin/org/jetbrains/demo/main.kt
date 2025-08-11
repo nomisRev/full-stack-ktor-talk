@@ -12,7 +12,7 @@ import org.koin.core.context.startKoin
 
 fun main() = application {
     startKoin {
-        modules(appModule, desktopModule)
+        modules(desktopModule, appModule)
     }
 
     Window(

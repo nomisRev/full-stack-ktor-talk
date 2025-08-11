@@ -21,15 +21,10 @@ class HttpChatRepository(
     private val appConfig: AppConfig,
     base: Logger
 ) : ChatRepository {
-    private val logger = base.withTag("HttpChatRepository")
-
     override suspend fun sendMessage(message: String): Flow<String> = flow {
         httpClient.sse(request = {
-            URLBuilder("${appConfig.apiBaseUrl}/chat").apply {
-                parameter("message", message)
-            }.also {
-                println("############################ SSE URL: ${it.buildString()}")
-                this.url.takeFrom(it)
+            url("${appConfig.apiBaseUrl}/chat").apply {
+                parameter("question", message)
             }
         }) {
             incoming.collect { event ->
