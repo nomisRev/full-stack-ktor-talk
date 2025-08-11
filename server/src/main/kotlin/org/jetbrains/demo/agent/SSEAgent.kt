@@ -4,10 +4,19 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.AIAgent.FeatureContext
 import ai.koog.agents.core.agent.AIAgentBase
 import ai.koog.agents.core.agent.config.AIAgentConfigBase
+import ai.koog.agents.core.agent.context.AIAgentContextBase
+import ai.koog.agents.core.agent.entity.AIAgentNodeBase
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
+import ai.koog.agents.core.tools.ToolArgs
+import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.core.tools.ToolResult
 import ai.koog.agents.features.eventHandler.feature.EventHandler
+import ai.koog.prompt.dsl.ModerationResult
+import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.executor.model.PromptExecutor
+import ai.koog.prompt.llm.LLModel
+import ai.koog.prompt.message.Message
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -30,13 +39,133 @@ class SSEAgent<Input, Output>(
     toolRegistry: ToolRegistry = ToolRegistry.EMPTY,
     clock: Clock = Clock.System,
     installFeatures: FeatureContext.() -> Unit = {},
-) : AIAgentBase<Input, Flow<AgentEvent<Input, Output>>> {
+) : AIAgentBase<Input, Flow<SSEAgent.Event<Input, Output>>> {
 
-    private var channel: ProducerScope<AgentEvent<Input, Output>>? = null
+    sealed interface Event<out Input, out Output> {
+        sealed interface Agent<Input, Output> : Event<Input, Output>
+
+        data class OnBeforeAgentStarted<Input, Output>(
+            public val agent: AIAgent<Input, Output>,
+            public val runId: String,
+            public val strategy: AIAgentStrategy<Input, Output>,
+            public val feature: EventHandler,
+            public val context: AIAgentContextBase
+        ) : Agent<Input, Output>
+
+        data class OnAgentFinished<Output>(
+            public val agentId: String,
+            public val runId: String,
+            public val result: Output,
+            public val resultType: KType,
+        ) : Agent<Nothing, Output>
+
+        data class OnAgentRunError(
+            val agentId: String,
+            val runId: String,
+            val throwable: Throwable
+        ) : Agent<Nothing, Nothing>
+
+        @JvmInline
+        value class OnAgentBeforeClose(val agentId: String) : Agent<Nothing, Nothing>
+
+
+        sealed interface Strategy<Input, Output> : Event<Input, Output>
+
+        data class OnStrategyStarted<Input, Output>(
+            public val runId: String,
+            public val strategy: AIAgentStrategy<Input, Output>,
+            public val feature: EventHandler
+        ) : Strategy<Input, Output>
+
+        data class OnStrategyFinished<Input, Output>(
+            public val runId: String,
+            public val strategy: AIAgentStrategy<Input, Output>,
+            public val feature: EventHandler,
+            public val result: Output,
+            public val resultType: KType,
+        ) : Strategy<Input, Output>
+
+        sealed interface Node : Event<Nothing, Nothing>
+
+        data class OnBeforeNode(
+            val node: AIAgentNodeBase<*, *>,
+            val context: AIAgentContextBase,
+            val input: Any?,
+            val inputType: KType,
+        ) : Node
+
+        data class OnAfterNode(
+            val node: AIAgentNodeBase<*, *>,
+            val context: AIAgentContextBase,
+            val input: Any?,
+            val output: Any?,
+            val inputType: KType,
+            val outputType: KType,
+        ) : Node
+
+        data class OnNodeExecutionError(
+            val node: AIAgentNodeBase<*, *>,
+            val context: AIAgentContextBase,
+            val throwable: Throwable
+        ) : Node
+
+        sealed interface LLM : Event<Nothing, Nothing>
+
+        data class OnBeforeLLMCall(
+            val runId: String,
+            val prompt: Prompt,
+            val model: LLModel,
+            val tools: List<ToolDescriptor>,
+        ) : LLM
+
+        data class OnAfterLLMCall(
+            val runId: String,
+            val prompt: Prompt,
+            val model: LLModel,
+            val tools: List<ToolDescriptor>,
+            val responses: List<Message.Response>,
+            val moderationResponse: ModerationResult?
+        ) : LLM
+
+        sealed interface Tool : Event<Nothing, Nothing>
+
+        data class OnToolCall(
+            val runId: String,
+            val toolCallId: String?,
+            val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            val toolArgs: ToolArgs
+        ) : Tool
+
+        data class OnToolValidationError(
+            val runId: String,
+            val toolCallId: String?,
+            val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            val toolArgs: ToolArgs,
+            val error: String
+        ) : Tool
+
+        data class OnToolCallFailure(
+            val runId: String,
+            val toolCallId: String?,
+            val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            val toolArgs: ToolArgs,
+            val throwable: Throwable
+        ) : Tool
+
+        data class OnToolCallResult(
+            val runId: String,
+            val toolCallId: String?,
+            val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            val toolArgs: ToolArgs,
+            val result: ToolResult?
+        ) : Tool
+    }
+
+    private var channel: ProducerScope<Event<Input, Output>>? = null
     private var isRunning = false
     private val runningMutex = Mutex()
 
-    private suspend fun send(agent: AgentEvent<Input, Output>) =
+    private suspend fun send(agent: Event<Input, Output>) =
         requireNotNull(channel) { "Race condition detected: SSEAgent2 is not running anymore" }
             .send(agent)
 
@@ -54,7 +183,7 @@ class SSEAgent<Input, Output>(
         install(EventHandler) {
             onBeforeAgentStarted { ctx ->
                 send(
-                    AgentEvent.OnBeforeAgentStarted<Input, Output>(
+                    Event.OnBeforeAgentStarted<Input, Output>(
                         ctx.agent as AIAgent<Input, Output>,
                         ctx.runId,
                         ctx.strategy as AIAgentStrategy<Input, Output>,
@@ -65,7 +194,7 @@ class SSEAgent<Input, Output>(
             }
             onAgentFinished { ctx ->
                 send(
-                    AgentEvent.OnAgentFinished(
+                    Event.OnAgentFinished(
                         ctx.agentId,
                         ctx.runId,
                         ctx.result as Output,
@@ -73,12 +202,12 @@ class SSEAgent<Input, Output>(
                     )
                 )
             }
-            onAgentRunError { ctx -> send(AgentEvent.OnAgentRunError(ctx.agentId, ctx.runId, ctx.throwable)) }
-            onAgentBeforeClose { ctx -> send(AgentEvent.OnAgentBeforeClose(ctx.agentId)) }
+            onAgentRunError { ctx -> send(Event.OnAgentRunError(ctx.agentId, ctx.runId, ctx.throwable)) }
+            onAgentBeforeClose { ctx -> send(Event.OnAgentBeforeClose(ctx.agentId)) }
 
             onStrategyStarted { ctx ->
                 send(
-                    AgentEvent.OnStrategyStarted(
+                    Event.OnStrategyStarted(
                         ctx.runId,
                         ctx.strategy as AIAgentStrategy<Input, Output>,
                         ctx.feature
@@ -87,7 +216,7 @@ class SSEAgent<Input, Output>(
             }
             onStrategyFinished { ctx ->
                 send(
-                    AgentEvent.OnStrategyFinished(
+                    Event.OnStrategyFinished(
                         ctx.runId,
                         ctx.strategy as AIAgentStrategy<Input, Output>,
                         ctx.feature,
@@ -97,10 +226,10 @@ class SSEAgent<Input, Output>(
                 )
             }
 
-            onBeforeNode { ctx -> send(AgentEvent.OnBeforeNode(ctx.node, ctx.context, ctx.input, ctx.inputType)) }
+            onBeforeNode { ctx -> send(Event.OnBeforeNode(ctx.node, ctx.context, ctx.input, ctx.inputType)) }
             onAfterNode { ctx ->
                 send(
-                    AgentEvent.OnAfterNode(
+                    Event.OnAfterNode(
                         ctx.node,
                         ctx.context,
                         ctx.input,
@@ -110,12 +239,12 @@ class SSEAgent<Input, Output>(
                     )
                 )
             }
-            onNodeExecutionError { ctx -> send(AgentEvent.OnNodeExecutionError(ctx.node, ctx.context, ctx.throwable)) }
+            onNodeExecutionError { ctx -> send(Event.OnNodeExecutionError(ctx.node, ctx.context, ctx.throwable)) }
 
-            onBeforeLLMCall { ctx -> send(AgentEvent.OnBeforeLLMCall(ctx.runId, ctx.prompt, ctx.model, ctx.tools)) }
+            onBeforeLLMCall { ctx -> send(Event.OnBeforeLLMCall(ctx.runId, ctx.prompt, ctx.model, ctx.tools)) }
             onAfterLLMCall { ctx ->
                 send(
-                    AgentEvent.OnAfterLLMCall(
+                    Event.OnAfterLLMCall(
                         ctx.runId,
                         ctx.prompt,
                         ctx.model,
@@ -126,10 +255,10 @@ class SSEAgent<Input, Output>(
                 )
             }
 
-            onToolCall { ctx -> send(AgentEvent.OnToolCall(ctx.runId, ctx.toolCallId, ctx.tool, ctx.toolArgs)) }
+            onToolCall { ctx -> send(Event.OnToolCall(ctx.runId, ctx.toolCallId, ctx.tool, ctx.toolArgs)) }
             onToolValidationError { ctx ->
                 send(
-                    AgentEvent.OnToolValidationError(
+                    Event.OnToolValidationError(
                         ctx.runId,
                         ctx.toolCallId,
                         ctx.tool,
@@ -140,7 +269,7 @@ class SSEAgent<Input, Output>(
             }
             onToolCallFailure { ctx ->
                 send(
-                    AgentEvent.OnToolCallFailure(
+                    Event.OnToolCallFailure(
                         ctx.runId,
                         ctx.toolCallId,
                         ctx.tool,
@@ -151,7 +280,7 @@ class SSEAgent<Input, Output>(
             }
             onToolCallResult { ctx ->
                 send(
-                    AgentEvent.OnToolCallResult(
+                    Event.OnToolCallResult(
                         ctx.runId,
                         ctx.toolCallId,
                         ctx.tool,
@@ -163,8 +292,8 @@ class SSEAgent<Input, Output>(
         }
     }
 
-    override suspend fun run(agentInput: Input): Flow<AgentEvent<Input, Output>> =
-        channelFlow {
+    override suspend fun run(agentInput: Input): Flow<Event<Input, Output>> =
+        channelFlow<Event<Input, Output>> {
             runningMutex.withLock {
                 if (isRunning) {
                     throw IllegalStateException("Agent is already running")

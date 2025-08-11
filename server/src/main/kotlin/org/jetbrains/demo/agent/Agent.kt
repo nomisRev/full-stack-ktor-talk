@@ -84,7 +84,7 @@ fun Application.events(config: AppConfig) {
                 deferredTools.await(),
                 configureAgent = { it.withSystemPrompt(system()) }
             ).run(userQuestion)
-                .filter { it is AgentEvent.Agent || it is AgentEvent.Tool }
+                .filter { it is SSEAgent.Event.Agent || it is SSEAgent.Event.Tool }
                 .collect {
                     println(it)
                     send(data = it.toString())
