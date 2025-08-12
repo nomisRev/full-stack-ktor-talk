@@ -18,4 +18,13 @@ kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs { browser() }
     js { browser() }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.kotlinx.serialization.core)
+            api("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+            // https://youtrack.jetbrains.com/issue/CMP-8519
+            api("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
+        }
+    }
 }

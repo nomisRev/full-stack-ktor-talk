@@ -17,12 +17,18 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.demo.JourneyForm
+import org.jetbrains.demo.TransportType
+import org.jetbrains.demo.Traveler
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @Composable
-fun JourneySpannerRoute(viewModel: JourneyPlannerViewModel = koinViewModel()) {
+fun JourneySpannerRoute(
+    viewModel: JourneyPlannerViewModel = koinViewModel(),
+    onSubmit: (JourneyForm) -> Unit
+) {
     val form by viewModel.state.collectAsState()
 
     JourneySpannerScreen(
@@ -42,7 +48,7 @@ fun JourneySpannerRoute(viewModel: JourneyPlannerViewModel = koinViewModel()) {
         onTravelerRemove = viewModel::removeTraveler,
         onTravelerNameChange = viewModel::updateTravelerName,
         onDetailsChange = viewModel::updateDetails,
-        onSubmit = { viewModel.submit { /* no-op */ } },
+        onSubmit = { viewModel.submit(onSubmit) },
     )
 }
 

@@ -12,7 +12,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.chat.ChatScreen
+import org.jetbrains.demo.agent.AgentPlannerRoute
+import org.jetbrains.demo.agent.AgentPlannerViewModel
 import org.jetbrains.demo.journey.JourneySpannerRoute
+import org.koin.compose.viewmodel.koinViewModel
 
 interface AuthSession {
     fun hasToken(): Boolean
@@ -31,7 +34,7 @@ fun App(
 ) {
     Logger.app.d("App: Composable started")
     val navController = rememberNavController()
-    val start = if (authSession.hasToken()) Screen.Planner else Screen.LogIn
+    val start = if (authSession.hasToken()) Screen.Form else Screen.LogIn
 
     AppTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -51,9 +54,19 @@ fun App(
                     SignInContent { navController.navigate(Screen.Chat) }
                 }
 
+                composable<Screen.Form> {
+                    Logger.app.d("NavHost: Screen.Form")
+                    val planner = koinViewModel<AgentPlannerViewModel>()
+                    JourneySpannerRoute { form ->
+                        Logger.app.d("NavHost: Navigating to Screen.Planner & started $form")
+                        planner.start(form)
+                        navController.navigate(Screen.Planner)
+                    }
+                }
+
                 composable<Screen.Planner> {
                     Logger.app.d("NavHost: Screen.Planner")
-                    JourneySpannerRoute()
+                    AgentPlannerRoute()
                 }
             }
         }
@@ -75,6 +88,10 @@ object Screen {
     @Serializable
     @SerialName("login")
     data object LogIn
+
+    @Serializable
+    @SerialName("planner")
+    data object Form
 
     @Serializable
     @SerialName("planner")

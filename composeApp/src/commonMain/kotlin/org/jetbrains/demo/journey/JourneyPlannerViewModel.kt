@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,13 +14,18 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.demo.JourneyForm
+import org.jetbrains.demo.TransportType
+import org.jetbrains.demo.Traveler
 
 class JourneyPlannerViewModel(
     base: Logger
 ) : ViewModel() {
     private val logger = base.withTag("JourneyPlannerViewModel")
 
-    private val _state = MutableStateFlow<JourneyForm>(JourneyForm.empty())
+    private val _state = MutableStateFlow(EmptyJourneyForm())
     val state: StateFlow<JourneyForm> = _state.asStateFlow()
 
     fun updateFromCity(value: String) = _state.update { it.copy(fromCity = value) }
@@ -57,17 +63,17 @@ class JourneyPlannerViewModel(
     }
 
     fun updateTravelerName(id: String, name: String) = _state.update { form ->
-        val updated: ImmutableList<Traveler> = form.travelers.map { t ->
+        val updated = form.travelers.map { t ->
             if (t.id == id) t.copy(name = name) else t
         }.toImmutableList()
         form.copy(travelers = updated)
     }
 
-    fun submit(onResult: (Boolean) -> Unit) {
+    fun submit(onResult: (JourneyForm) -> Unit) {
         viewModelScope.launch {
-            logger.d("Submitting journey: ${_state.value}")
-            // Simulate submit success
-            onResult(true)
+            val form = _state.value
+            logger.d("Submitting journey: $form")
+            onResult(form)
         }
     }
 }

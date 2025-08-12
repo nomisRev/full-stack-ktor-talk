@@ -23,6 +23,7 @@ kotlin {
 
 dependencies {
     implementation(project(":ktor-openid"))
+    implementation(project(":shared"))
     implementation(libs.logback)
     implementation(libs.koog.agents)
     implementation(ktorLibs.server.netty)

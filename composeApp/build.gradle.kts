@@ -93,6 +93,7 @@ kotlin {
             // https://youtrack.jetbrains.com/issue/CMP-8519
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
             implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+            implementation(project(":shared"))
         }
         androidMain.dependencies {
             implementation(compose.preview)

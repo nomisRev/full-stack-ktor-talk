@@ -5,20 +5,24 @@ import io.ktor.client.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.serialization.kotlinx.json.*
 import org.jetbrains.demo.auth.TokenProvider
+import org.jetbrains.demo.config.AppConfig
 
 /**
  * [TokenProvider] is optional since browser works with sessions.
  */
 fun HttpClient(
     baseLogger: Logger,
+    config: AppConfig,
     tokenProvider: TokenProvider?
 ): HttpClient = HttpClient {
     val logger = baseLogger.withTag("HttpClient")
     install(ContentNegotiation) { json() }
     install(SSE)
+    defaultRequest { url(config.apiBaseUrl) }
     if (tokenProvider != null) {
         logger.d("TokenProvider is not null, applying header authentication")
         withAuthBearer(tokenProvider, logger)
