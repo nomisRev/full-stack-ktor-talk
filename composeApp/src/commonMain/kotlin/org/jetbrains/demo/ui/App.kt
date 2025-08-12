@@ -17,12 +17,12 @@ import org.jetbrains.demo.agent.AgentPlannerViewModel
 import org.jetbrains.demo.journey.JourneySpannerRoute
 import org.koin.compose.viewmodel.koinViewModel
 
-interface AuthSession {
+interface AuthState {
     fun hasToken(): Boolean
     fun clearToken()
 }
 
-fun AuthSession(auth: AuthViewModel): AuthSession = object : AuthSession {
+fun AuthSession(auth: AuthViewModel): AuthState = object : AuthState {
     override fun hasToken(): Boolean = auth.state.value is AuthViewModel.AuthState.SignedIn
     override fun clearToken() = auth.signOut()
 }
@@ -30,11 +30,12 @@ fun AuthSession(auth: AuthViewModel): AuthSession = object : AuthSession {
 @Composable
 fun App(
     onNavHostReady: suspend (NavController) -> Unit = {},
-    authSession: AuthSession,
+    authState: AuthState,
 ) {
     Logger.app.d("App: Composable started")
     val navController = rememberNavController()
-    val start = if (authSession.hasToken()) Screen.Form else Screen.LogIn
+    val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
+    val planner = koinViewModel<AgentPlannerViewModel>()
 
     AppTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -44,29 +45,29 @@ fun App(
                 composable<Screen.Chat> {
                     Logger.app.d("NavHost: Screen.Chat")
                     ChatScreen {
-                        authSession.clearToken()
+                        authState.clearToken()
                         navController.navigate(Screen.LogIn)
                     }
                 }
 
                 composable<Screen.LogIn> {
                     Logger.app.d("NavHost: Screen.LogIn")
-                    SignInContent { navController.navigate(Screen.Chat) }
+                    SignInContent { navController.navigate(Screen.Form) }
+                }
+
+                composable<Screen.Planner> {
+                    Logger.app.d("NavHost: Screen.Planner")
+                    AgentPlannerRoute(planner)
                 }
 
                 composable<Screen.Form> {
                     Logger.app.d("NavHost: Screen.Form")
-                    val planner = koinViewModel<AgentPlannerViewModel>()
+
                     JourneySpannerRoute { form ->
                         Logger.app.d("NavHost: Navigating to Screen.Planner & started $form")
                         planner.start(form)
                         navController.navigate(Screen.Planner)
                     }
-                }
-
-                composable<Screen.Planner> {
-                    Logger.app.d("NavHost: Screen.Planner")
-                    AgentPlannerRoute()
                 }
             }
         }
@@ -90,7 +91,7 @@ object Screen {
     data object LogIn
 
     @Serializable
-    @SerialName("planner")
+    @SerialName("form")
     data object Form
 
     @Serializable

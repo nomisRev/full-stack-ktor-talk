@@ -37,7 +37,7 @@ import org.jetbrains.demo.ToolStatus
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun AgentPlannerRoute(viewModel: AgentPlannerViewModel = koinViewModel()) {
+fun AgentPlannerRoute(viewModel: AgentPlannerViewModel) {
     val scrollState = rememberScrollState()
     val uiState by viewModel.state.collectAsStateWithLifecycle()
 

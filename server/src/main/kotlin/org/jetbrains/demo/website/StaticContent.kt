@@ -4,7 +4,6 @@ import io.ktor.server.application.Application
 import io.ktor.server.auth.openid.OpenIdConnectPrincipal
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.response.respondRedirect
-import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.sessions.get

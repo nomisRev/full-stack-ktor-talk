@@ -39,7 +39,6 @@ sealed interface PlannerUiState {
 
 class AgentPlannerViewModel(
     base: Logger,
-    private val config: AppConfig,
     private val httpClient: HttpClient,
 ) : ViewModel() {
     private val logger = base.withTag("AgentPlannerViewModel")

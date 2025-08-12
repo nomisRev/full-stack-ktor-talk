@@ -13,6 +13,7 @@ import org.jetbrains.demo.agent.AgentPlannerViewModel
 import org.jetbrains.demo.network.HttpClient
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -21,8 +22,8 @@ val appModule = module {
     singleOf(::AppConfig)
     single { HttpClient(get(), get(), getOrNull()) }
     singleOf(::HttpChatRepository) bind ChatRepository::class
-    factoryOf(::AuthViewModel)
-    factoryOf(::ChatViewModel)
-    factoryOf(::JourneyPlannerViewModel)
-    factoryOf(::AgentPlannerViewModel)
+    viewModelOf(::AuthViewModel)
+    viewModelOf(::ChatViewModel)
+    viewModelOf(::JourneyPlannerViewModel)
+    viewModelOf(::AgentPlannerViewModel)
 }

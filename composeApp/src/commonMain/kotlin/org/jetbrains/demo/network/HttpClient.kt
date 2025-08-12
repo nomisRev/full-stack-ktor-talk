@@ -22,6 +22,7 @@ fun HttpClient(
     val logger = baseLogger.withTag("HttpClient")
     install(ContentNegotiation) { json() }
     install(SSE)
+    logger.d("BaseURL: ${config.apiBaseUrl})")
     defaultRequest { url(config.apiBaseUrl) }
     if (tokenProvider != null) {
         logger.d("TokenProvider is not null, applying header authentication")

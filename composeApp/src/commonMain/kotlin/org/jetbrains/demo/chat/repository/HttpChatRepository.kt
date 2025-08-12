@@ -23,7 +23,7 @@ class HttpChatRepository(
 ) : ChatRepository {
     override suspend fun sendMessage(message: String): Flow<String> = flow {
         httpClient.sse(request = {
-            url("${appConfig.apiBaseUrl}/chat").apply {
+            url("chat").apply {
                 parameter("question", message)
             }
         }) {
