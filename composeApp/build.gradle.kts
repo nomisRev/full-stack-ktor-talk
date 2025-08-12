@@ -125,6 +125,12 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+
+        val webMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-browser:0.4")
+            }
+        }
     }
 }
 
@@ -180,7 +186,7 @@ android {
     buildTypes {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("debug")
-            buildConfigField("String", "API_BASE_URL", "\"10.0.2.2\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
         }
         getByName("release") {
             isMinifyEnabled = false
