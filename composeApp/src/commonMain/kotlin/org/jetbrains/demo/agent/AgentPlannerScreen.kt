@@ -31,10 +31,8 @@ import co.touchlab.kermit.Logger
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.demo.AgentColumn
 import org.jetbrains.demo.AgentGraph
-import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.ToolNode
 import org.jetbrains.demo.ToolStatus
-import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun AgentPlannerRoute(viewModel: AgentPlannerViewModel) {

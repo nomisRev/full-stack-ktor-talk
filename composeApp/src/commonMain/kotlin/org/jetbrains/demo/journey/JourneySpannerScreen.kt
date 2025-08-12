@@ -23,13 +23,14 @@ import org.jetbrains.demo.Traveler
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun JourneySpannerRoute(
     viewModel: JourneyPlannerViewModel = koinViewModel(),
     onSubmit: (JourneyForm) -> Unit
 ) {
-    val form by viewModel.state.collectAsState()
+    val form by viewModel.state.collectAsStateWithLifecycle()
 
     JourneySpannerScreen(
         fromCity = { form.fromCity },

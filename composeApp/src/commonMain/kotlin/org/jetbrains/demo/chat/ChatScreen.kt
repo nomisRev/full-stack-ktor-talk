@@ -2,7 +2,7 @@ package org.jetbrains.demo.chat
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -11,10 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
-import org.jetbrains.demo.auth.AuthViewModel
 import org.jetbrains.demo.ui.Logger
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun ChatScreen(
@@ -23,9 +22,8 @@ fun ChatScreen(
 ) {
     Logger.app.d("ChatScreen: Displaying chat for user")
 
-    val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val chatState by viewModel.state.collectAsState()
+    val chatState by viewModel.state.collectAsStateWithLifecycle()
     var messageText by remember { mutableStateOf("") }
 
     LaunchedEffect(chatState.messages.size) {
@@ -86,7 +84,7 @@ fun ChatScreen(
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(chatState.messages) { message ->
+            itemsIndexed(chatState.messages, key = { index, _ -> index }) { _, message ->
                 MessageBubble(message = message)
             }
         }
