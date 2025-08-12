@@ -2,7 +2,8 @@ package org.jetbrains.demo.ui
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,8 +12,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.chat.ChatScreen
-import org.jetbrains.demo.journey.JourneyPlannerScreen
-import org.koin.compose.koinInject
+import org.jetbrains.demo.journey.JourneySpannerRoute
 
 interface AuthSession {
     fun hasToken(): Boolean
@@ -31,10 +31,10 @@ fun App(
 ) {
     Logger.app.d("App: Composable started")
     val navController = rememberNavController()
-    val start = if (authSession.hasToken()) Screen.Chat else Screen.LogIn
+    val start = if (authSession.hasToken()) Screen.Planner else Screen.LogIn
 
     AppTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Logger.app.d("App: Creating NavHost with $start")
             NavHost(navController, start) {
                 Logger.app.d("NavHost building")
@@ -45,13 +45,15 @@ fun App(
                         navController.navigate(Screen.LogIn)
                     }
                 }
+
                 composable<Screen.LogIn> {
                     Logger.app.d("NavHost: Screen.LogIn")
                     SignInContent { navController.navigate(Screen.Chat) }
                 }
+
                 composable<Screen.Planner> {
                     Logger.app.d("NavHost: Screen.Planner")
-                    JourneyPlannerScreen()
+                    JourneySpannerRoute()
                 }
             }
         }

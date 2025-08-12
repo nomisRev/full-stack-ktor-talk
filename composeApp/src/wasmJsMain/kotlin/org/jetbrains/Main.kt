@@ -33,16 +33,14 @@ object WebAuthSession : AuthSession {
 fun main() {
     startKoin { modules(appModule) }
     ComposeViewport("ComposeApp") {
-        MaterialTheme {
-            App({ controller ->
-                window.bindToNavigation(controller) { entry ->
-                    val route = entry.destination.route.orEmpty()
-                    when {
-                        route == "chat" -> ""
-                        else -> route
-                    }
+        App({ controller ->
+            window.bindToNavigation(controller) { entry ->
+                val route = entry.destination.route.orEmpty()
+                when {
+                    route == "chat" -> ""
+                    else -> route
                 }
-            }, WebAuthSession)
-        }
+            }
+        }, WebAuthSession)
     }
 }

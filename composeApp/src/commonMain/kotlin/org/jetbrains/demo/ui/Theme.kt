@@ -7,89 +7,81 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Brand Palette
-val EnglishViolet = Color(0xFF413C58)
-val EnglishViolet200 = Color(0xFF1A1823)
-val EnglishViolet300 = Color(0xFF272435)
-val EnglishViolet400 = Color(0xFF343046)
-val EnglishViolet600 = Color(0xFF615983)
+// Color palette based on provided SCSS values
+private val FederalBlue = Color(0xFF03045E)
+private val MarianBlue = Color(0xFF023E8A)
+private val HonoluluBlue = Color(0xFF0077B6)
+private val BlueGreen = Color(0xFF0096C7)
+private val PacificCyan = Color(0xFF00B4D8)
+private val VividSkyBlue = Color(0xFF48CAE4)
+private val NonPhotoBlue = Color(0xFF90E0EF)
+private val NonPhotoBlue2 = Color(0xFFADE8F4)
+private val LightCyan = Color(0xFFCAF0F8)
 
-val AshGray = Color(0xFFA3C4BC)
-val AshGray700 = Color(0xFFC7DBD6)
-val AshGray800 = Color(0xFFDAE7E4)
+// Common colors
+private val White = Color.White
+private val DarkBackground = Color(0xFF0F1419)
 
-val TeaGreen = Color(0xFFBFD7B5)
-val TeaGreen100 = Color(0xFF23341C)
-
-val Cream = Color(0xFFE7EFC5)
-val Parchment = Color(0xFFF2E7C9)
+// Error colors
+private val ErrorLight = Color(0xFFBA1A1A)
+private val ErrorDark = Color(0xFFFFB4AB)
+private val ErrorContainer = Color(0xFFFFDAD6)
+private val ErrorContainerLight = Color(0xFF410002)
+private val ErrorContainerDark = Color(0xFF93000A)
+private val OnErrorDark = Color(0xFF690005)
 
 private val LightColors: ColorScheme = lightColorScheme(
-    primary = EnglishViolet,
-    onPrimary = Color.White,
-    primaryContainer = EnglishViolet600,
-    onPrimaryContainer = Color.White,
-
-    secondary = AshGray,
-    onSecondary = Color(0xFF0D0C12),
-    secondaryContainer = AshGray700,
-    onSecondaryContainer = Color(0xFF0D0C12),
-
-    tertiary = TeaGreen,
-    onTertiary = Color(0xFF0D0C12),
-    tertiaryContainer = Parchment,
-    onTertiaryContainer = EnglishViolet300,
-
-    background = Cream,
-    onBackground = EnglishViolet400,
-
-    surface = Parchment,
-    onSurface = EnglishViolet400,
-    surfaceVariant = AshGray700,
-    onSurfaceVariant = EnglishViolet300,
-
-    error = Color(0xFFBA1A1A),
-    onError = Color.White,
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002),
-
-    outline = EnglishViolet300,
-    inverseOnSurface = Cream,
-    inverseSurface = EnglishViolet400,
-    inversePrimary = AshGray
+    primary = HonoluluBlue,
+    onPrimary = White,
+    primaryContainer = LightCyan,
+    onPrimaryContainer = FederalBlue,
+    secondary = PacificCyan,
+    onSecondary = White,
+    secondaryContainer = NonPhotoBlue2,
+    onSecondaryContainer = MarianBlue,
+    tertiary = VividSkyBlue,
+    onTertiary = White,
+    tertiaryContainer = NonPhotoBlue,
+    onTertiaryContainer = FederalBlue,
+    background = White,
+    onBackground = FederalBlue,
+    surface = White,
+    onSurface = FederalBlue,
+    surfaceVariant = LightCyan,
+    onSurfaceVariant = MarianBlue,
+    outline = BlueGreen,
+    outlineVariant = NonPhotoBlue,
+    error = ErrorLight,
+    onError = White,
+    errorContainer = ErrorContainer,
+    onErrorContainer = ErrorContainerLight
 )
 
 private val DarkColors: ColorScheme = darkColorScheme(
-    primary = TeaGreen,
-    onPrimary = TeaGreen100,
-    primaryContainer = EnglishViolet400,
-    onPrimaryContainer = AshGray800,
-
-    secondary = AshGray,
-    onSecondary = EnglishViolet200,
-    secondaryContainer = EnglishViolet300,
-    onSecondaryContainer = AshGray800,
-
-    tertiary = AshGray700,
-    onTertiary = EnglishViolet200,
-
-    background = EnglishViolet300,
-    onBackground = Parchment,
-
-    surface = EnglishViolet400,
-    onSurface = Parchment,
-    surfaceVariant = EnglishViolet300,
-    onSurfaceVariant = AshGray800,
-
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
-
-    outline = AshGray,
-    inverseOnSurface = EnglishViolet300,
-    inverseSurface = Parchment,
-    inversePrimary = TeaGreen
+    primary = VividSkyBlue,
+    onPrimary = FederalBlue,
+    primaryContainer = MarianBlue,
+    onPrimaryContainer = LightCyan,
+    secondary = NonPhotoBlue,
+    onSecondary = FederalBlue,
+    secondaryContainer = BlueGreen,
+    onSecondaryContainer = NonPhotoBlue2,
+    tertiary = PacificCyan,
+    onTertiary = FederalBlue,
+    tertiaryContainer = HonoluluBlue,
+    onTertiaryContainer = NonPhotoBlue,
+    background = DarkBackground,
+    onBackground = LightCyan,
+    surface = DarkBackground,
+    onSurface = LightCyan,
+    surfaceVariant = MarianBlue,
+    onSurfaceVariant = NonPhotoBlue,
+    outline = BlueGreen,
+    outlineVariant = HonoluluBlue,
+    error = ErrorDark,
+    onError = OnErrorDark,
+    errorContainer = ErrorContainerDark,
+    onErrorContainer = ErrorContainer
 )
 
 @Composable

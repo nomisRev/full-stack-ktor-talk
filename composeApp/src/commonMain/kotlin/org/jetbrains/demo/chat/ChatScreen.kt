@@ -68,7 +68,7 @@ fun ChatScreen(
                 Button(
                     onClick = onSignOut,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text("Sign Out")

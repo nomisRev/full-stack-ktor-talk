@@ -35,7 +35,7 @@ private fun HttpClientConfig<*>.withAuthBearer(tokenProvider: TokenProvider, log
                 logger.d("Loading token for request: ${token != null}")
                 token?.let {
                     BearerTokens(accessToken = it, refreshToken = null)
-                }
+                }?.also { logger.d("BearerTokens token: $it") }
             }
 
             refreshTokens {
