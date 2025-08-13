@@ -8,10 +8,6 @@ import kotlinx.coroutines.flow.flow
 import org.jetbrains.demo.config.AppConfig
 import co.touchlab.kermit.Logger
 import io.ktor.client.request.url
-import io.ktor.http.URLBuilder
-import io.ktor.http.buildUrl
-import io.ktor.http.parseUrl
-import io.ktor.http.takeFrom
 
 /**
  * Implementation of ChatRepository that uses HttpClient to communicate with the chat API.

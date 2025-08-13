@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +30,7 @@ import co.touchlab.kermit.Logger
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.demo.AgentColumn
 import org.jetbrains.demo.AgentGraph
+import org.jetbrains.demo.SerializableImmutableList
 import org.jetbrains.demo.ToolNode
 import org.jetbrains.demo.ToolStatus
 
@@ -46,20 +46,10 @@ fun AgentPlannerRoute(viewModel: AgentPlannerViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("AI Planner", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-
         when (val s = uiState) {
-            is PlannerUiState.Loading -> {
-                Logger.d("Rendering Loading state")
-                Text("Preparing...")
-            }
-            is PlannerUiState.Error -> {
-                Logger.d("Rendering Error state: ${s.message}")
-                Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
-            }
-            is PlannerUiState.Success -> {
-                Logger.d("Rendering Success state: ${s.graph}")
-                AgentGraphView(graph = s.graph)
-            }
+            is PlannerUiState.Loading -> Text("Preparing...")
+            is PlannerUiState.Error -> Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+            is PlannerUiState.Success -> AgentGraphView(graph = s.graph)
         }
     }
 }
@@ -67,9 +57,7 @@ fun AgentPlannerRoute(viewModel: AgentPlannerViewModel) {
 @Composable
 private fun AgentGraphView(graph: AgentGraph) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val result = graph.result
-        val columns = graph.columns
-        val headerText = remember(graph.started, graph.finished) {
+        val headerText by remember(graph.started, graph.finished) {
             derivedStateOf {
                 when {
                     !graph.started -> "Idle"
@@ -79,37 +67,49 @@ private fun AgentGraphView(graph: AgentGraph) {
             }
         }
 
-        Text(headerText.value, style = MaterialTheme.typography.titleMedium)
-        result?.let { result ->
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                Text(
-                    text = result,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+        Text(headerText, style = MaterialTheme.typography.titleMedium)
+
+        val result = graph.result
+        if (result != null) {
+            ResultCardView(result)
         }
 
-        if (columns.isEmpty()) {
+        if (graph.columns.isEmpty()) {
             Text("Awaiting events...")
         } else {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(
-                    items = columns,
-                    key = { col ->
-                        when (col) {
-                            is AgentColumn.Single -> col.node.tool.id
-                            is AgentColumn.Parallel -> col.nodes.joinToString("|") { it.tool.id }
-                        }
-                    }
-                ) { col ->
-                    when (col) {
-                        is AgentColumn.Single -> ToolNodeView(node = { col.node })
-                        is AgentColumn.Parallel -> ParallelColumnView(tools = { col.nodes })
-                    }
+            AgentGraph(graph.columns)
+        }
+    }
+}
+
+@Composable
+private fun AgentGraph(columns: SerializableImmutableList<AgentColumn>) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        items(
+            items = columns,
+            key = { col ->
+                when (col) {
+                    is AgentColumn.Single -> col.node.tool.id
+                    is AgentColumn.Parallel -> col.nodes.joinToString("|") { it.tool.id }
                 }
             }
+        ) { col ->
+            when (col) {
+                is AgentColumn.Single -> ToolNodeView(node = { col.node })
+                is AgentColumn.Parallel -> ParallelColumnView(tools = { col.nodes })
+            }
         }
+    }
+}
+
+@Composable
+private fun ResultCardView(result: String) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+        Text(
+            text = result,
+            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

@@ -18,7 +18,7 @@ import org.jetbrains.demo.Traveler
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TravelersList(
-    travelers: () -> ImmutableList<Traveler>,
+    travellers: ImmutableList<Traveler>,
     onAdd: () -> Unit,
     onRemove: (id: String) -> Unit,
     onNameChange: (id: String, name: String) -> Unit,
@@ -30,7 +30,7 @@ fun TravelersList(
             modifier = Modifier.heightIn(max = 240.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(items = travelers(), key = { it.id }) { traveler ->
+            items(items = travellers, key = { it.id }) { traveler ->
                 Card(elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                     Row(Modifier.padding(12.dp)) {
                         OutlinedTextField(

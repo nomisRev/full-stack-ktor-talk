@@ -24,15 +24,14 @@ This is a Kotlin Multiplatform project focusing on Android and Server with Googl
   The most important subfolder is `commonMain`. If preferred, you can add code to the platform-specific folders here
   too.
 
-* `/docs` contains project documentation and recommendations for improvements.
-
 ## Key Features
 
 * **Cross-Platform UI**: Shared UI implementation using Compose Multiplatform
 * **Google Authentication**: OAuth2 implementation for both Android and Desktop
-* **Real-time Chat**: Server-Sent Events (SSE) for streaming chat responses
+* **Streaming Responses**: Server-Sent Events (SSE) used for real-time streaming
 * **Secure Token Management**: Encrypted storage and automatic token refresh
-* **AI Integration**: OpenAI-powered chat responses
+* **AI Integration**: OpenAI-powered responses
+* **Travel Agent Planner**: Authenticated SSE endpoint at `POST /plan` that plans trips using tools (Maps, Weather)
 
 ## Google Sign-In Setup
 

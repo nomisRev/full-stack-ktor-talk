@@ -1,20 +1,14 @@
 package org.jetbrains.demo.journey
 
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.Serializable
 import org.jetbrains.demo.JourneyForm
-import org.jetbrains.demo.SerializableImmutableList
 import org.jetbrains.demo.TransportType
 import org.jetbrains.demo.Traveler
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
-
-
 
 @OptIn(ExperimentalTime::class)
 fun EmptyJourneyForm(): JourneyForm {
@@ -29,4 +23,3 @@ fun EmptyJourneyForm(): JourneyForm {
         details = null,
     )
 }
-

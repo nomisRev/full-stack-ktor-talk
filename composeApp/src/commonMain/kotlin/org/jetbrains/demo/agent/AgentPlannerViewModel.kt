@@ -29,7 +29,6 @@ import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.Tool
 import org.jetbrains.demo.ToolNode
 import org.jetbrains.demo.ToolStatus
-import org.jetbrains.demo.config.AppConfig
 
 sealed interface PlannerUiState {
     data object Loading : PlannerUiState

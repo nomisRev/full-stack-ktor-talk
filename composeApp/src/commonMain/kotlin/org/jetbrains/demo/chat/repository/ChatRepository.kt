@@ -1,7 +1,6 @@
 package org.jetbrains.demo.chat.repository
 
 import kotlinx.coroutines.flow.Flow
-import org.jetbrains.demo.chat.ChatMessage
 
 /**
  * Repository interface for chat functionality.

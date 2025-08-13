@@ -43,16 +43,6 @@ class JourneyPlannerViewModel(
         form.copy(endDate = LocalDateTime(date, t))
     }
 
-    fun setStartTime(hour: Int, minute: Int) = _state.update { form ->
-        val d = form.startDate.date
-        form.copy(startDate = LocalDateTime(d, LocalTime(hour, minute)))
-    }
-
-    fun setEndTime(hour: Int, minute: Int) = _state.update { form ->
-        val d = form.endDate.date
-        form.copy(endDate = LocalDateTime(d, LocalTime(hour, minute)))
-    }
-
     fun addTraveler() = _state.update { form ->
         val newTraveler = Traveler(id = randomId(), name = "")
         form.copy(travelers = (form.travelers + newTraveler).toImmutableList())
