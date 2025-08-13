@@ -17,5 +17,4 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 /server/src/main/resources/web/
-/kotlin-js-store/wasm/yarn.lock
-/kotlin-js-store/yarn.lock
+**/kotlin-js-store/**

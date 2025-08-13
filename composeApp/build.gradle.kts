@@ -134,17 +134,8 @@ kotlin {
     }
 }
 
-fun property(name: String): String {
-    val properties = gradleLocalProperties(rootDir, providers)
-    return System.getenv(name)
-        ?: System.getProperty(name)
-        ?: properties.getProperty(name, null)
-        ?: error("Property $name not found")
-}
-
-dependencies {
-    debugImplementation(compose.uiTooling)
-}
+private fun property(name: String): String? =
+    System.getenv(name) ?: System.getProperty(name)
 
 android {
     namespace = "org.jetbrains"
@@ -160,12 +151,12 @@ android {
         buildConfigField(
             "String",
             "GOOGLE_CLIENT_ID",
-            "\"${property("GOOGLE_CLIENT_ID")}\""
+            "\"${property("GOOGLE_CLIENT_ID") ?: "<missing-google-client-id>"}\""
         )
         buildConfigField(
             "String",
             "API_BASE_URL",
-            "\"${property("API_BASE_URL")}\""
+            "\"${property("API_BASE_URL") ?: "http://10.0.2.2:8080"}\""
         )
     }
     packaging {
@@ -186,7 +177,6 @@ android {
     buildTypes {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("debug")
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
         }
         getByName("release") {
             isMinifyEnabled = false
@@ -201,13 +191,17 @@ android {
     }
 }
 
+dependencies {
+    debugImplementation(compose.uiTooling)
+}
+
 compose.desktop {
     application {
         mainClass = "org.jetbrains.demo.MainKt"
         val properties = gradleLocalProperties(rootDir, providers)
         jvmArgs += listOf(
-            "-DGOOGLE_CLIENT_ID=${System.getenv("GOOGLE_CLIENT_ID") ?: properties.getProperty("GOOGLE_CLIENT_ID", "")}",
-            "-DAPI_BASE_URL=${System.getenv("API_BASE_URL") ?: properties.getProperty("API_BASE_URL", "")}"
+            "-DGOOGLE_CLIENT_ID=${property("GOOGLE_CLIENT_ID") ?: "<missing-google-client-id>"}",
+            "-DAPI_BASE_URL=${property("API_BASE_URL") ?: "http://localhost:8080"}"
         )
     }
 }
