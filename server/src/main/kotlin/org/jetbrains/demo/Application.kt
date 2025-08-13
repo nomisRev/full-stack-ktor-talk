@@ -47,8 +47,6 @@ suspend fun Application.app(config: AppConfig) {
     val userRepository: UserRepository = ExposedUserRepository(database)
     val ai: AiService = KoogAiService(config.ai)
 
-    engine.stop()
-
     if (developmentMode) install(CallLogging)
     install(SSE)
     install(WebSockets) {
