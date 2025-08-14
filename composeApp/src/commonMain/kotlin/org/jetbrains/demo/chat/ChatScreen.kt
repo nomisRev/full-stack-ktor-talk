@@ -2,7 +2,7 @@ package org.jetbrains.demo.chat
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,18 +12,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.demo.ui.Logger
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun ChatScreen(
-    viewModel: ChatViewModel = koinInject(),
+    viewModel: ChatViewModel = koinViewModel(),
     onSignOut: () -> Unit
 ) {
     Logger.app.d("ChatScreen: Displaying chat for user")
 
-    val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val chatState by viewModel.state.collectAsState()
+    val chatState by viewModel.state.collectAsStateWithLifecycle()
     var messageText by remember { mutableStateOf("") }
 
     LaunchedEffect(chatState.messages.size) {
@@ -66,7 +66,7 @@ fun ChatScreen(
                 Button(
                     onClick = onSignOut,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text("Sign Out")
@@ -84,7 +84,7 @@ fun ChatScreen(
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(chatState.messages) { message ->
+            itemsIndexed(chatState.messages, key = { index, _ -> index }) { _, message ->
                 MessageBubble(message = message)
             }
         }

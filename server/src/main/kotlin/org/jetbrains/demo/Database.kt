@@ -1,10 +1,9 @@
-package org.jetbrains.demo.config
+package org.jetbrains.demo
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
-import kotlinx.coroutines.DisposableHandle
 import kotlinx.serialization.Serializable
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.output.MigrateResult
@@ -21,11 +20,6 @@ fun Application.database(config: DatabaseConfig): Database {
     }
     return database
 }
-
-fun Application.addCloseable(closeable: AutoCloseable): DisposableHandle =
-    monitor.subscribe(ApplicationStopped) {
-        closeable.close()
-    }
 
 @Serializable
 data class DatabaseConfig(

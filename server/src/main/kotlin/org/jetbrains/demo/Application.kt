@@ -1,36 +1,41 @@
 package org.jetbrains.demo
 
+import ai.koog.ktor.Koog
+import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
+import io.ktor.server.auth.openid.OpenIdConnect
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.getAs
-import io.ktor.server.config.property
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.engine.stop
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.routing.*
 import io.ktor.server.sse.SSE
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.pingPeriod
 import io.ktor.server.websocket.timeout
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.jetbrains.demo.ai.AiConfig
-import org.jetbrains.demo.ai.AiService
-import org.jetbrains.demo.ai.KoogAiService
-import org.jetbrains.demo.ai.installAiRoutes
-import org.jetbrains.demo.auth.*
-import org.jetbrains.demo.config.AppConfig
-import org.jetbrains.demo.config.database
+import org.jetbrains.demo.agent.chat.agent
 import org.jetbrains.demo.user.ExposedUserRepository
 import org.jetbrains.demo.user.UserRepository
 import org.jetbrains.demo.user.userRoutes
+import org.jetbrains.demo.website.website
 import kotlin.time.Duration.Companion.seconds
+
+@Serializable
+data class AppConfig(
+    val host: String,
+    val port: Int,
+    val auth: AuthConfig,
+    val apiKey: String,
+    val weatherApiUrl: String,
+    val database: DatabaseConfig,
+)
+
+@Serializable
+data class AuthConfig(val issuer: String, val secret: String, val clientId: String)
 
 fun main() {
     val config = ApplicationConfig("application.yaml")
@@ -45,26 +50,41 @@ fun main() {
 suspend fun Application.app(config: AppConfig) {
     val database = database(config.database)
     val userRepository: UserRepository = ExposedUserRepository(database)
-    val ai: AiService = KoogAiService(config.ai)
+    install(Koog) {
+        llm {
+            openAI(config.apiKey)
+        }
+    }
 
+    configure(config)
+    agent(config)
+    website()
+    userRoutes(userRepository)
+}
+
+private fun Application.configure(config: AppConfig) {
     if (developmentMode) install(CallLogging)
     install(SSE)
+    install(OpenIdConnect) {
+        jwk(config.auth.issuer) {
+            name = "google"
+        }
+        oauth(config.auth.issuer, config.auth.clientId, config.auth.secret) {
+            loginUri { path("login") }
+            logoutUri { path("logout") }
+            redirectUri { path("callback") }
+            redirectOnSuccessUri { path("home") }
+        }
+    }
     install(WebSockets) {
         pingPeriod = 15.seconds
         timeout = 15.seconds
     }
-
-    configureJwtAuth(config.jwk)
 
     install(ContentNegotiation) {
         json(Json {
             encodeDefaults = true
             isLenient = true
         })
-    }
-
-    routing {
-        userRoutes(userRepository)
-        installAiRoutes(ai)
     }
 }

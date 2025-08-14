@@ -1,11 +1,16 @@
 app:
-  host: "$KTOR_HOST:0.0.0.0"
-  port: "$KTOR_PORT:8080"
-  jwk:
-    issuer: "https://accounts.google.com"
-    jwkUrl: "https://www.googleapis.com/oauth2/v3/certs"
-  ai:
-    apiKey: "$OPENAI_API_KEY:"
+  host: "$HOST:0.0.0.0"
+  port: "$PORT:8080"
+
+  auth:
+    issuer: "$ISSUER:https://accounts.google.com"
+    clientId: "$AUTH_CLIENT_ID:ktor-app"
+    secret: "$AUTH_CLIENT_SECRET:<empty>"
+
+  apiKey: "$OPENAI_API_KEY:"
+
+  weatherApiUrl: "$WEATHER_API_URL:https://api.open-meteo.com/v1/forecast"
+
   database:
     driverClassName: "$DB_DRIVER_CLASS_NAME:org.postgresql.Driver"
     host: "$DB_HOST:localhost"
@@ -17,6 +22,7 @@ app:
     cachePrepStmts: "$DB_CACHE_PREP_STMTS:true"
     prepStmtCacheSize: "$DB_PREP_STMT_CACHE_SIZE:250"
     prepStmtCacheSqlLimit: "$DB_PREP_STMT_CACHE_SQL_LIMIT:2048"
+
     flyway:
       locations: "$FLYWAY_LOCATIONS:classpath:db/migration"
       baselineOnMigrate: "$FLYWAY_BASELINE_ON_MIGRATE:true"

@@ -1,5 +1,7 @@
 package org.jetbrains.demo.chat
 
+import kotlinx.collections.immutable.PersistentList
+
 data class ChatMessage(
     val text: String,
     val isFromUser: Boolean,
@@ -7,6 +9,6 @@ data class ChatMessage(
 )
 
 data class ChatState(
-    val messages: List<ChatMessage> = emptyList(),
-    val isLoading: Boolean = false
+    val messages: PersistentList<ChatMessage>,
+    val isLoading: Boolean
 )

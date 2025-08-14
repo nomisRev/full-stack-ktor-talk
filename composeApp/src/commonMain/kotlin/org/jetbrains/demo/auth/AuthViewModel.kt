@@ -1,16 +1,13 @@
 package org.jetbrains.demo.auth
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import org.jetbrains.demo.config.AppConfig
-import org.jetbrains.demo.ui.Logger
 
 class AuthViewModel(
     private val tokenStorage: TokenProvider,
@@ -28,8 +25,7 @@ class AuthViewModel(
     }
 
     private val _state = MutableStateFlow<AuthState>(
-        if (tokenStorage.getToken() != null) AuthState.SignedIn
-        else AuthState.SignedOut
+        if (tokenStorage.getToken() != null) AuthState.SignedIn else AuthState.SignedOut
     )
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
@@ -59,7 +55,7 @@ class AuthViewModel(
         }
     }
 
-    suspend fun signOut() {
+    fun signOut() {
         tokenStorage.clearToken()
         _state.value = AuthState.SignedOut
     }

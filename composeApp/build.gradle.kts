@@ -1,16 +1,23 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.hot.reload)
 }
 
 kotlin {
+    jvmToolchain(21)
+
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
@@ -23,8 +30,71 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        outputModuleName = "composeApp"
+        browser {
+            val rootDirPath = project.rootDir.path
+            val projectDirPath = project.projectDir.path
+            commonWebpackConfig {
+                outputFileName = "kotlin-app-wasm-js.js"
+                devServer =
+                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+                        static =
+                            (static ?: mutableListOf()).apply {
+                                add(rootDirPath)
+                                add(projectDirPath)
+                            }
+                    }
+            }
+        }
+        binaries.executable()
+    }
+    js {
+        binaries.executable()
+        browser {
+            outputModuleName = "composeApp"
+            commonWebpackConfig {
+                outputFileName = "kotlin-app-js.js"
+            }
+        }
+    }
+
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate {
+        common {
+            group("web") {
+                withJs()
+                withWasmJs()
+            }
+        }
+    }
 
     sourceSets {
+        commonMain.dependencies {
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+            implementation(libs.androidx.lifecycle.viewmodel)
+            implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(ktorLibs.client.core)
+            implementation(ktorLibs.client.auth)
+            implementation(ktorLibs.serialization.kotlinx.json)
+            implementation(ktorLibs.client.contentNegotiation)
+            implementation(ktorLibs.client.logging)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kermit)
+            implementation(libs.koin.compose.viewmodel.navigation)
+            implementation(libs.androidx.navigation.compose)
+            // https://youtrack.jetbrains.com/issue/CMP-8519
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
+            implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+            implementation(project(":shared"))
+        }
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -46,32 +116,20 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation(libs.kotlinx.coroutines.swing)
                 implementation(ktorLibs.server.cio)
+                implementation(project(":ktor-openid"))
                 implementation(ktorLibs.server.auth)
                 implementation(ktorLibs.client.cio)
                 implementation(libs.kotlinx.html)
             }
         }
-        commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodel)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(ktorLibs.client.core)
-            implementation(ktorLibs.client.auth)
-            implementation(ktorLibs.serialization.kotlinx.json)
-            implementation(ktorLibs.client.contentNegotiation)
-            implementation(ktorLibs.client.logging)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kermit)
-            implementation(libs.koin.compose.viewmodel.navigation)
-        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+
+        val webMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-browser:0.4")
+            }
         }
     }
 }
@@ -145,5 +203,23 @@ compose.desktop {
             "-DGOOGLE_CLIENT_ID=${property("GOOGLE_CLIENT_ID") ?: "<missing-google-client-id>"}",
             "-DAPI_BASE_URL=${property("API_BASE_URL") ?: "http://localhost:8080"}"
         )
+    }
+}
+
+tasks {
+    val cleanWebApp by registering(Delete::class) {
+        delete(file("$rootDir/server/src/main/resources/web"))
+    }
+
+    val buildWebApp by registering(Copy::class) {
+        val wasmDist = "wasmJsBrowserDistribution"
+        val jsDist = "jsBrowserDistribution"
+        dependsOn(cleanWebApp, wasmDist, jsDist)
+
+        from(named(jsDist).get().outputs.files)
+        from(named(wasmDist).get().outputs.files)
+        into(layout.buildDirectory.dir("webApp"))
+        into(file("$rootDir/server/src/main/resources/web"))
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
     }
 }

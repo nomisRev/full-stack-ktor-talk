@@ -17,8 +17,15 @@ application {
 group = "org.jetbrains.demo"
 version = "1.0.0"
 
+kotlin {
+    compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
+}
+
 dependencies {
+    implementation(project(":ktor-openid"))
+    implementation(project(":shared"))
     implementation(libs.logback)
+    implementation(libs.koog.agents)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.auth.jwt)
@@ -27,29 +34,14 @@ dependencies {
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.client.cio)
     implementation(ktorLibs.client.contentNegotiation)
-    implementation(libs.koog.agents)
+    implementation(libs.koog.ktor)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.hikari)
     implementation(libs.postgresql)
     implementation(libs.flyway.postgresql)
-    implementation("io.ktor:ktor-server-di:3.2.0")
-    implementation("io.ktor:ktor-server-core:3.2.0")
-    implementation("io.ktor:ktor-server-sse:3.2.0")
-    implementation("io.ktor:ktor-server-core:3.2.0")
-    implementation("io.ktor:ktor-server-websockets:3.2.0")
-    implementation("io.insert-koin:koin-ktor:3.5.6")
-    implementation("io.insert-koin:koin-logger-slf4j:3.5.6")
     testImplementation(ktorLibs.server.testHost)
     testImplementation(libs.kotlin.test.junit)
-}
-
-fun property(name: String): String {
-    val properties = gradleLocalProperties(rootDir, providers)
-    return System.getenv(name)
-        ?: System.getProperty(name)
-        ?: properties.getProperty(name, null)
-        ?: error("Property $name not found")
 }
 
 ktor {

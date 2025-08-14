@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package org.jetbrains.demo.auth
 
 import android.content.Context
@@ -97,10 +99,8 @@ class AndroidTokenProvider(
         }
     }
 
-    override suspend fun clearToken() {
-        withContext(Dispatchers.IO) {
-            logger.d("TokenProvider: Clearing token")
-            sharedPreferences.edit { clear() }
-        }
+    override fun clearToken() {
+        logger.d("TokenProvider: Clearing token")
+        sharedPreferences.edit { clear() }
     }
 }
