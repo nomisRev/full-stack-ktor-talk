@@ -26,14 +26,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
+import kotlinx.datetime.toDeprecatedClock
 import java.lang.IllegalStateException
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
+import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-public suspend fun <Input, Output> ServerSSESession.sseAgent(
+suspend fun <Input, Output> ServerSSESession.sseAgent(
     inputType: KType,
     outputType: KType,
     strategy: AIAgentStrategy<Input, Output>,
@@ -62,7 +63,7 @@ public suspend fun <Input, Output> ServerSSESession.sseAgent(
 fun AIAgentConfig.withSystemPrompt(prompt: Prompt): AIAgentConfig =
     AIAgentConfig(prompt, model, maxAgentIterations, missingToolsConversionStrategy)
 
-public suspend inline fun <reified Input, reified Output> ServerSSESession.sseAgent(
+suspend inline fun <reified Input, reified Output> ServerSSESession.sseAgent(
     strategy: AIAgentStrategy<Input, Output>,
     model: LLModel,
     tools: ToolRegistry = ToolRegistry.EMPTY,
@@ -97,18 +98,18 @@ class SSEAgent<Input, Output>(
         sealed interface Agent<Input, Output> : Event<Input, Output>
 
         data class OnBeforeAgentStarted<Input, Output>(
-            public val agent: AIAgent<Input, Output>,
-            public val runId: String,
-            public val strategy: AIAgentStrategy<Input, Output>,
-            public val feature: EventHandler,
-            public val context: AIAgentContextBase
+            val agent: AIAgent<Input, Output>,
+            val runId: String,
+            val strategy: AIAgentStrategy<Input, Output>,
+            val feature: EventHandler,
+            val context: AIAgentContextBase
         ) : Agent<Input, Output>
 
         data class OnAgentFinished<Output>(
-            public val agentId: String,
-            public val runId: String,
-            public val result: Output,
-            public val resultType: KType,
+            val agentId: String,
+            val runId: String,
+            val result: Output,
+            val resultType: KType,
         ) : Agent<Nothing, Output>
 
         data class OnAgentRunError(
@@ -124,17 +125,17 @@ class SSEAgent<Input, Output>(
         sealed interface Strategy<Input, Output> : Event<Input, Output>
 
         data class OnStrategyStarted<Input, Output>(
-            public val runId: String,
-            public val strategy: AIAgentStrategy<Input, Output>,
-            public val feature: EventHandler
+            val runId: String,
+            val strategy: AIAgentStrategy<Input, Output>,
+            val feature: EventHandler
         ) : Strategy<Input, Output>
 
         data class OnStrategyFinished<Input, Output>(
-            public val runId: String,
-            public val strategy: AIAgentStrategy<Input, Output>,
-            public val feature: EventHandler,
-            public val result: Output,
-            public val resultType: KType,
+            val runId: String,
+            val strategy: AIAgentStrategy<Input, Output>,
+            val feature: EventHandler,
+            val result: Output,
+            val resultType: KType,
         ) : Strategy<Input, Output>
 
         sealed interface Node : Event<Nothing, Nothing>
@@ -229,9 +230,10 @@ class SSEAgent<Input, Output>(
         agentConfig = agentConfig,
         id = id,
         toolRegistry = toolRegistry,
-        clock = clock
+        clock = clock.toDeprecatedClock()
     ) {
         installFeatures()
+        @Suppress("UNCHECKED_CAST")
         install(EventHandler) {
             onBeforeAgentStarted { ctx ->
                 send(

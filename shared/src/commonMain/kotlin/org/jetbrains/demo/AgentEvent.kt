@@ -37,13 +37,19 @@ data class Tool(val id: String, val name: String)
 @Serializable
 sealed interface AgentEvent {
     @Serializable
-    data object AgentStarted : AgentEvent
+    data class AgentStarted(val agentId: String, val runId: String) : AgentEvent
+
     @Serializable
     data class ToolStarted(val ids: SerializableImmutableList<Tool>) : AgentEvent
+
     @Serializable
     data class ToolFinished(val ids: SerializableImmutableList<Tool>) : AgentEvent
+
     @Serializable
-    data class AgentFinished(val result: String) : AgentEvent
+    data class Message(val message: List<String>) : AgentEvent
+
+    @Serializable
+    data class AgentFinished(val agentId: String, val runId: String, val result: String) : AgentEvent
 }
 
 @Serializable

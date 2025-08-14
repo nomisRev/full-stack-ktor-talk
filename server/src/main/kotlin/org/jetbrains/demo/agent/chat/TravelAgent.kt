@@ -25,9 +25,12 @@ import io.ktor.server.sse.ServerSSESession
 import io.ktor.server.sse.sse
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
+import org.jetbrains.demo.AgentEvent.*
 import org.jetbrains.demo.AppConfig
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.Tool
@@ -49,43 +52,74 @@ fun Application.agent(config: AppConfig) {
         authenticate("google") {
             sse("/plan", HttpMethod.Post) {
                 val form = call.receive<JourneyForm>()
+                var inputTokens = 0
+                var outputTokens = 0
+                var totalTokens = 0
+
                 sseAgent(
                     planner(),
                     OpenAIModels.CostOptimized.GPT4oMini,
                     deferredTools.await(),
                     configureAgent = { it.withSystemPrompt(system()) }
                 ).run(form)
-                    .mapNotNull {
-                        when (it) {
-                            is SSEAgent.Event.Agent -> when (it) {
+                    .collect { event ->
+                        val result = when (event) {
+                            is SSEAgent.Event.Agent -> when (event) {
                                 is SSEAgent.Event.OnAgentBeforeClose -> null
-                                is SSEAgent.Event.OnAgentFinished<String> -> AgentEvent.AgentFinished(it.result)
-                                is SSEAgent.Event.OnAgentRunError -> AgentEvent.AgentFinished(
-                                    it.throwable.message ?: "Unknown error"
+                                is SSEAgent.Event.OnAgentFinished<String> -> AgentFinished(
+                                    agentId = event.agentId,
+                                    runId = event.runId,
+                                    result = event.result
                                 )
 
-                                is SSEAgent.Event.OnBeforeAgentStarted<JourneyForm, String> -> AgentEvent.AgentStarted
+                                is SSEAgent.Event.OnAgentRunError ->
+                                    AgentFinished(
+                                        agentId = event.agentId,
+                                        runId = event.runId,
+                                        result = event.throwable.message ?: "Unknown error"
+                                    )
+
+                                is SSEAgent.Event.OnBeforeAgentStarted<JourneyForm, String> -> AgentStarted(
+                                    event.context.agentId,
+                                    event.context.runId
+                                )
                             }
 
-                            is SSEAgent.Event.Tool -> when (it) {
+                            is SSEAgent.Event.Tool -> when (event) {
                                 is SSEAgent.Event.OnToolCall ->
-                                    AgentEvent.ToolStarted(persistentListOf(Tool(it.toolCallId!!, it.tool.name)))
+                                    ToolStarted(persistentListOf(Tool(event.toolCallId!!, event.tool.name)))
 
                                 is SSEAgent.Event.OnToolCallResult ->
-                                    AgentEvent.ToolFinished(persistentListOf(Tool(it.toolCallId!!, it.tool.name)))
+                                    ToolFinished(persistentListOf(Tool(event.toolCallId!!, event.tool.name)))
 
                                 is SSEAgent.Event.OnToolCallFailure ->
-                                    AgentEvent.ToolFinished(persistentListOf(Tool(it.toolCallId!!, it.tool.name)))
+                                    ToolFinished(persistentListOf(Tool(event.toolCallId!!, event.tool.name)))
 
                                 is SSEAgent.Event.OnToolValidationError ->
-                                    AgentEvent.ToolFinished(persistentListOf(Tool(it.toolCallId!!, it.tool.name)))
+                                    ToolFinished(persistentListOf(Tool(event.toolCallId!!, event.tool.name)))
                             }
 
-                            else -> null
+                            is SSEAgent.Event.OnAfterLLMCall -> {
+                                inputTokens += event.responses.sumOf { it.metaInfo.inputTokensCount ?: 0 }
+                                outputTokens += event.responses.sumOf { it.metaInfo.outputTokensCount ?: 0 }
+                                totalTokens += event.responses.sumOf { it.metaInfo.totalTokensCount ?: 0 }
+                                Message(event.responses.filterIsInstance<Message.Assistant>().map { it.content })
+                            }
+
+                            is SSEAgent.Event.OnBeforeLLMCall,
+                            is SSEAgent.Event.OnAfterNode,
+                            is SSEAgent.Event.OnBeforeNode,
+                            is SSEAgent.Event.OnNodeExecutionError,
+                            is SSEAgent.Event.OnStrategyFinished<*, *>,
+                            is SSEAgent.Event.OnStrategyStarted<*, *> -> null
                         }
-                    }.collect { event ->
-                        application.log.debug("Sending AgentEvent: $event")
-                        send(data = Json.encodeToString(AgentEvent.serializer(), event))
+
+                        if (result != null) {
+                            application.log.debug("Sending AgentEvent: $result")
+                            send(data = Json.encodeToString(AgentEvent.serializer(), result))
+                        } else {
+                            application.log.debug("Ignoring $event")
+                        }
                     }
             }
         }

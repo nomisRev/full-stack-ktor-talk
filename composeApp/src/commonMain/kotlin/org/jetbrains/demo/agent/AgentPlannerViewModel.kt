@@ -23,12 +23,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentColumn
+import org.jetbrains.demo.AgentColumn.*
 import org.jetbrains.demo.AgentEvent
 import org.jetbrains.demo.AgentGraph
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.Tool
 import org.jetbrains.demo.ToolNode
 import org.jetbrains.demo.ToolStatus
+import org.jetbrains.demo.agent.PlannerUiState.*
 
 sealed interface PlannerUiState {
     data object Loading : PlannerUiState
@@ -72,17 +74,17 @@ class AgentPlannerViewModel(
     private fun handleEvent(event: AgentEvent) {
         when (event) {
             is AgentEvent.AgentStarted -> _state.update { s ->
-                PlannerUiState.Success(currentGraph(s).copy(started = true))
+                Success(currentGraph(s).copy(started = true))
             }
 
             is AgentEvent.ToolStarted -> _state.update { s ->
                 val g = currentGraph(s)
                 val newCol: AgentColumn = if (event.ids.size == 1) {
-                    AgentColumn.Single(ToolNode(event.ids[0], ToolStatus.Running))
+                    Single(ToolNode(event.ids[0], ToolStatus.Running))
                 } else {
-                    AgentColumn.Parallel(event.ids.map { ToolNode(it, ToolStatus.Running) }.toImmutableList())
+                    Parallel(event.ids.map { ToolNode(it, ToolStatus.Running) }.toImmutableList())
                 }
-                PlannerUiState.Success(g.copy(columns = (g.columns + newCol).toImmutableList()))
+                Success(g.copy(columns = (g.columns + newCol).toImmutableList()))
             }
 
             is AgentEvent.ToolFinished -> _state.update { s ->
@@ -99,7 +101,7 @@ class AgentPlannerViewModel(
                         )
                     }
                 }.toImmutableList()
-                PlannerUiState.Success(g.copy(columns = updatedCols))
+                Success(g.copy(columns = updatedCols))
             }
 
             is AgentEvent.AgentFinished -> _state.update { s ->
@@ -112,11 +114,13 @@ class AgentPlannerViewModel(
                         )
                     }
                 }.toImmutableList()
-                PlannerUiState.Success(g.copy(finished = true, result = event.result, columns = finishedCols))
+                Success(g.copy(finished = true, result = event.result, columns = finishedCols))
             }
+
+            is AgentEvent.Message -> logger.d("Dropped message: ${event.message}")
         }
     }
 
     private fun currentGraph(state: PlannerUiState): AgentGraph =
-        (state as? PlannerUiState.Success)?.graph ?: AgentGraph.empty()
+        (state as? Success)?.graph ?: AgentGraph.empty()
 }
