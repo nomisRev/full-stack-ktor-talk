@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import io.ktor.plugin.features.DockerImageRegistry.Companion.googleContainerRegistry
 
 plugins {
@@ -19,6 +18,7 @@ version = "1.0.0"
 
 kotlin {
     compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
+    compilerOptions.freeCompilerArgs.add("-Xannotation-default-target=param-property")
 }
 
 dependencies {

@@ -450,7 +450,7 @@ private class OpenIdConnectOauthAuthenticationProvider(
     name: String,
     config: Config,
     private val httpClient: HttpClient,
-    private val callback: String,
+    private val redirect: String,
     private val scopes: Set<String>,
     private val clientId: String,
     private val clientSecret: String,
@@ -461,7 +461,7 @@ private class OpenIdConnectOauthAuthenticationProvider(
         @Suppress("unused", "invisible_reference")
         OAuthAuthenticationProvider(OAuthAuthenticationProvider.Config(name).apply {
             urlProvider = {
-                val url = "${request.origin.scheme}://${request.host()}:${request.port()}$callback"
+                val url = "${request.origin.scheme}://${request.host()}:${request.port()}$redirect"
                 application.log.debug("OAuth callback url: $url")
                 url
             }
@@ -497,7 +497,7 @@ private fun Application.openIdOauth2(
     clientId: String,
     clientSecret: String,
     login: String,
-    callback: String,
+    redirect: String,
     refresh: String,
     logout: String,
     postLogoutRedirect: String,
@@ -513,7 +513,7 @@ private fun Application.openIdOauth2(
                 name = config.name,
                 config = OpenIdConnectOauthAuthenticationProvider.Config(config.name),
                 httpClient = client,
-                callback = callback,
+                redirect = redirect,
                 scopes = config.scopes.toSet(),
                 clientId = clientId,
                 clientSecret = clientSecret,
@@ -525,7 +525,7 @@ private fun Application.openIdOauth2(
     routing {
         authenticate(config.name) {
             get(login) {}
-            get(callback) {
+            get(redirect) {
                 val oauth = call.principal<OAuthAccessTokenResponse.OAuth2>() ?: return@get handleFailure()
                 val idToken = oauth.extraParameters["id_token"] ?: return@get handleFailure()
                 val principal = OpenIdConnectPrincipal(

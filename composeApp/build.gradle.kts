@@ -198,7 +198,6 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "org.jetbrains.demo.MainKt"
-        val properties = gradleLocalProperties(rootDir, providers)
         jvmArgs += listOf(
             "-DGOOGLE_CLIENT_ID=${property("GOOGLE_CLIENT_ID") ?: "<missing-google-client-id>"}",
             "-DAPI_BASE_URL=${property("API_BASE_URL") ?: "http://localhost:8080"}"

@@ -34,7 +34,8 @@ fun App(
 ) {
     Logger.app.d("App: Composable started")
     val navController = rememberNavController()
-    val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
+//    val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
+    val start = Screen.Form
     val planner = koinViewModel<AgentPlannerViewModel>()
 
     AppTheme {
